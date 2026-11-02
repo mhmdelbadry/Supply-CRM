@@ -85,6 +85,9 @@
          color:#c3cad8;text-decoration:none;cursor:pointer;font-size:13.5px;border-radius:8px;
          white-space:nowrap;overflow:hidden;}             /* one line, always */
   .nav a:hover{background:var(--nav2);color:#fff;}
+  /* the menu, tabs and buttons are things to click, not text (1 Nov): no text caret lands in them
+     (Chrome's caret browsing, an extension), and a double click selects nothing */
+  .nav, .nav *, .tab, .tabs, .cf-seg, .seg, .btn, button, .dtabs a, [data-tab]{user-select:none;-webkit-user-select:none;}
   .nav a.on{background:rgba(255,255,255,.1);color:#fff;font-weight:600;
             box-shadow:inset 3px 0 0 var(--zcyan);}
   .nav a em{font-style:normal;margin-left:auto;font-size:11px;color:#9aa6b8;line-height:18px;
@@ -3644,6 +3647,133 @@ function previewExport(){
   }).getExport(SID, { agents:EXP.agents, unassigned:EXP.unassigned, stage:EXP.stage, queue:EXP.queue });
 }
 
+/* ---------- Sync → Trips check (2 Nov) ----------
+   The Superset report of completed trips per captain, from this cycle's first day to a day picked,
+   against the CRM's count for the same drivers and days. A check: it changes nothing. */
+let TC_ROWS=null, TC_LAST=null;
+function drawTripsCheck(){
+  const b=document.getElementById('body'), t=new Date(today0().getTime()-86400000), y=ymdLocal(t);
+  TC_ROWS=null;
+  b.innerHTML=syncTabs()+'<div class="panel" style="max-width:980px">'+
+    '<h4>Trips check</h4><p class="dim" style="margin:-6px 0 14px">Superset\'s report of <b>completed</b> trips per captain, from the first day of this cycle '+
+      'to the day you pick, set against what the CRM counted for the same drivers over the same days. It changes nothing — it shows where the two differ.</p>'+
+    '<div class="dctl" style="margin-bottom:12px"><label class="dim" for="tcTo">The report runs from the cycle\'s first day to</label>'+
+      '<input type="date" id="tcTo" value="'+y+'" max="'+ymdLocal(today0())+'"></div>'+
+    '<label class="sdrop" id="tcDrop"><input type="file" id="tcFile" accept=".xlsx,.csv" hidden onchange="pickTrips(this.files[0])">'+
+      '<b id="tcTitle">Drop the Superset report here (Excel or CSV)</b><span id="tcSub">captain_id and the number of completed rides</span></label>'+
+    '<div id="tcMsg" class="smsg"></div>'+
+    '<div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" id="tcGo" disabled onclick="runTripsCheck()">Compare</button></div>'+
+    '<div id="tcOut"></div></div>';
+  const d=document.getElementById('tcDrop');
+  ['dragenter','dragover'].forEach(function(e){ d.addEventListener(e, function(ev){ ev.preventDefault(); d.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(e){ d.addEventListener(e, function(ev){ ev.preventDefault(); d.classList.remove('over'); }); });
+  d.addEventListener('drop', function(ev){ const f=ev.dataTransfer.files[0]; if(f) pickTrips(f); });
+}
+/* the two columns that matter, wherever they are: the captain's id and his completed rides */
+function tripsColumns(head){
+  const h=head.map(function(x){ return String(x==null?'':x).trim().toLowerCase(); });
+  const id=h.findIndex(function(x){ return /^(captain_?id|captain id|driver_?id|platform_?id|id)$/.test(x); });
+  let n=h.findIndex(function(x){ return /completed/.test(x); });
+  if(n<0) n=h.findIndex(function(x){ return /(rides|trips)/.test(x); });
+  return { id:id, n:n };
+}
+function tripsFrom(table){
+  for(let i=0;i<Math.min(table.length,10);i++){
+    const c=tripsColumns(table[i]||[]);
+    if(c.id>-1 && c.n>-1) return table.slice(i+1).map(function(r){ return [String(r[c.id]==null?'':r[c.id]).trim(), Number(r[c.n])]; })
+      .filter(function(r){ return r[0] && isFinite(r[1]); });
+  }
+  return null;
+}
+function csvTable(text){
+  const rows=[]; let row=[], f='', q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=c; continue; }
+    if(c==='"' && f===''){ q=true; continue; }
+    if(c===','){ row.push(f); f=''; continue; }
+    if(c==='\n' || c==='\r'){ if(c==='\r' && text[i+1]==='\n') i++; row.push(f); rows.push(row); row=[]; f=''; continue; }
+    f+=c; }
+  if(f!=='' || row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+function pickTrips(f){
+  if(!f) return;
+  const msg=document.getElementById('tcMsg'); msg.className='smsg'; msg.textContent='Reading the file…';
+  const done=function(table){
+    const rows=table && tripsFrom(table);
+    if(!rows || !rows.length){ msg.className='smsg bad'; msg.textContent='No captain_id and completed-rides columns found in this file.'; return; }
+    TC_ROWS=rows; msg.textContent='';
+    document.getElementById('tcTitle').textContent=f.name;
+    document.getElementById('tcSub').textContent=num(rows.length)+' captains · '+num(rows.reduce(function(s,r){ return s+r[1]; },0))+' completed trips in the file';
+    document.getElementById('tcGo').disabled=false;
+  };
+  if(/\.csv$/i.test(f.name)){ const r=new FileReader(); r.onload=function(){ done(csvTable(String(r.result||''))); }; r.readAsText(f); return; }
+  if(!/\.xlsx$/i.test(f.name)){ msg.className='smsg bad'; msg.textContent='Please choose the Excel (.xlsx) or CSV report.'; return; }
+  loadExcelJS(function(){
+    const r=new FileReader();
+    r.onload=function(){
+      const wb=new window.ExcelJS.Workbook();
+      wb.xlsx.load(r.result).then(function(){
+        const ws=wb.worksheets[0], table=[];
+        ws.eachRow({ includeEmpty:false }, function(row){ table.push(row.values.slice(1).map(function(v){ return v && typeof v==='object' && 'result' in v ? v.result : v; })); });
+        done(table);
+      }).catch(function(e){ msg.className='smsg bad'; msg.textContent='Could not read the Excel file: '+(e&&e.message||e); });
+    };
+    r.readAsArrayBuffer(f);
+  });
+}
+function runTripsCheck(){
+  if(!TC_ROWS) return;
+  const go=document.getElementById('tcGo'), out=document.getElementById('tcOut');
+  go.disabled=true; go.textContent='Comparing…'; out.innerHTML='';
+  run().withSuccessHandler(function(r){
+    go.disabled=false; go.textContent='Compare';
+    if(!r || !r.ok){ out.innerHTML='<div class="smsg bad">'+esc((r&&r.msg)||'No answer')+'</div>'; return; }
+    TC_LAST=r; const S=r.summary, d=S.matchedCrm-S.matchedFile, pct=S.matchedFile ? Math.abs(d)/S.matchedFile*100 : 0;
+    const tile=function(l,v,sub,cls){ return '<div class="dtile'+(cls?' '+cls:'')+'"><div class="dl">'+l+'</div><div class="dv">'+v+'</div><div class="ds">'+sub+'</div></div>'; };
+    out.innerHTML='<h4 style="margin:22px 0 4px">'+esc(dayName(r.from))+' – '+esc(dayName(r.to))+'</h4>'+
+      '<div class="dtiles" style="margin:10px 0 16px">'+
+        tile('Superset, the same drivers', num(S.matchedFile), num(S.matched)+' drivers in both')+
+        tile('The CRM, the same drivers', num(S.matchedCrm), 'their trips over the same days')+
+        tile('Difference', (d>0?'+':d<0?'−':'')+num(Math.abs(d)), d===0 ? 'the two agree' : (Math.round(pct*10)/10)+'% · '+num(r.sameDrivers)+' drivers differ', d===0?'good':(pct>2?'bad':'warn'))+
+        tile('In the file, not in the CRM', num(S.notInCrmTrips), num(S.notInCrm)+' captains — another service or city, or removed')+
+        tile('In the CRM, not in the file', num(S.crmOnlyTrips), num(S.crmOnly)+' drivers with trips the report does not show')+
+      '</div>'+
+      (S.unknown?'<p class="dim" style="font-size:12.5px">'+num(S.unknown)+' drivers have no count from the start of the cycle in the CRM (added since) — not compared.</p>':'')+
+      '<div style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:6px 0">By agent</h4>'+
+        '<button class="btn sm" onclick="tripsCheckExcel()">Download the comparison (Excel)</button></div>'+
+      '<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers</th><th class="num">Superset</th><th class="num">CRM</th><th class="num">Difference</th></tr></thead><tbody>'+
+      r.agents.map(function(a){ return '<tr><td><b>'+esc(a.agent||'Not assigned')+'</b></td><td class="num">'+num(a.drivers)+'</td><td class="num">'+num(a.file)+'</td><td class="num">'+num(a.crm)+'</td>'+
+        '<td class="num" style="color:'+(a.diff?'#b45309':'var(--dim)')+';font-weight:600">'+(a.diff>0?'+':a.diff<0?'−':'')+num(Math.abs(a.diff))+'</td></tr>'; }).join('')+
+      '</tbody></table></div>'+
+      (r.diffs.length ? '<h4 style="margin:18px 0 6px">The biggest differences <span class="dim" style="font-weight:400">('+num(r.diffs.length)+' drivers in all — every one is in the Excel)</span></h4>'+
+        '<div style="overflow-x:auto"><table><thead><tr><th>Driver</th><th>Agent</th><th>Stage</th><th class="num">Superset</th><th class="num">CRM</th><th class="num">Difference</th></tr></thead><tbody>'+
+        r.diffs.slice(0,40).map(function(x){ return '<tr onclick="openDriver(\''+esc(x.phone)+'\')" style="cursor:pointer"><td><b>'+esc(x.name)+'</b> <span class="dim">#'+esc(x.id)+'</span></td>'+
+          '<td>'+esc(x.agent||'—')+'</td><td>'+esc(x.stage||'')+'</td><td class="num">'+(x.notInFile?'<span class="dim">not in file</span>':num(x.file))+'</td><td class="num">'+num(x.crm)+'</td>'+
+          '<td class="num" style="color:#b45309;font-weight:600">'+(x.diff>0?'+':'−')+num(Math.abs(x.diff))+'</td></tr>'; }).join('')+'</tbody></table></div>' : '');
+  }).compareTrips(SID, { to: document.getElementById('tcTo').value, rows: TC_ROWS });
+}
+function tripsCheckExcel(){
+  const r=TC_LAST; if(!r) return;
+  loadExcelJS(function(){
+    const wb=new window.ExcelJS.Workbook(), S=r.summary;
+    const head=function(ws){ const h=ws.getRow(1); h.font={bold:true,color:{argb:'FFFFFFFF'}}; h.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF3B3F51'}}; ws.views=[{state:'frozen',ySplit:1}]; };
+    const s1=wb.addWorksheet('Summary'); s1.columns=[{header:'Trips check '+r.from+' to '+r.to,width:44},{header:'',width:16}];
+    [['Superset, the same drivers',S.matchedFile],['The CRM, the same drivers',S.matchedCrm],['Difference (CRM − Superset)',S.matchedCrm-S.matchedFile],['Drivers in both',S.matched],
+     ['In the file, not in the CRM: captains',S.notInCrm],['…their trips',S.notInCrmTrips],['In the CRM, not in the file: drivers',S.crmOnly],['…their trips',S.crmOnlyTrips],
+     ['Not compared (no count from the cycle start)',S.unknown],['All trips in the file',S.fileTrips]].forEach(function(x){ s1.addRow(x); });
+    s1.getRow(1).font={bold:true,size:13};
+    const s2=wb.addWorksheet('By agent'); s2.columns=[{header:'Agent',width:24},{header:'Drivers',width:10},{header:'Superset',width:12},{header:'CRM',width:12},{header:'Difference',width:12}];
+    r.agents.forEach(function(a){ s2.addRow([a.agent||'Not assigned',a.drivers,a.file,a.crm,a.diff]); }); head(s2);
+    const s3=wb.addWorksheet('Drivers that differ'); s3.columns=[{header:'Captain id',width:12},{header:'Driver',width:26},{header:'Phone',width:16},{header:'Agent',width:20},{header:'Stage',width:13},
+      {header:'Superset',width:11},{header:'CRM',width:11},{header:'Difference',width:12},{header:'Note',width:18}];
+    r.diffs.forEach(function(x){ s3.addRow([x.id,x.name,x.phone,x.agent,x.stage,x.notInFile?null:x.file,x.crm,x.diff,x.notInFile?'not in the file':'']); }); head(s3);
+    wb.xlsx.writeBuffer().then(function(buf){
+      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+      a.download='trips-check-'+r.from+'-to-'+r.to+'.xlsx'; document.body.appendChild(a); a.click(); a.remove();
+    });
+  });
+}
 /* ExcelJS is only needed here, so it is fetched the first time someone exports */
 function loadExcelJS(cb){
   if(window.ExcelJS) return cb();
@@ -3838,11 +3968,17 @@ function buildWorkbook(ExcelJS, d, layout){
    SYNC — the owner drops today's Superset export here
    ====================================================================== */
 let SYNC_TEXT = null;
+let SYNC_TAB='file';
+function syncTabs(){
+  return '<div class="cf-seg" style="margin-bottom:14px"><button class="'+(SYNC_TAB==='file'?'on':'')+'" onclick="SYNC_TAB=\'file\';drawSync()">Drivers file (daily sync)</button>'+
+    '<button class="'+(SYNC_TAB==='trips'?'on':'')+'" onclick="SYNC_TAB=\'trips\';drawSync()">Trips check (Superset)</button></div>';
+}
 function drawSync(){
   const b=document.getElementById('body');
   if(ME.role!=='owner'){ b.innerHTML='<div class="empty">Only the owner can sync.</div>'; return; }
   SYNC_TEXT=null;
-  b.innerHTML =
+  if(SYNC_TAB==='trips') return drawTripsCheck();
+  b.innerHTML = syncTabs()+
     '<div class="panel" style="max-width:760px">'+
       '<h4>Sync data</h4>'+
       '<p class="dim" style="margin:-6px 0 16px">Drop today\'s Superset export (CSV). It updates trips, dates and '+
