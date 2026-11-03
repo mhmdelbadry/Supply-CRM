@@ -2459,7 +2459,8 @@ function drawDashboard(){
         const T=r.trips;
         const none=!T.covered && (!T.since || T.since>R.upto);
         tt.querySelector('.dv').textContent=none ? '—' : num(T.n);
-        tt.querySelector('.ds').innerHTML = none ? 'not recorded — daily trips start '+(T.since?dayName(T.since):'after the first night')
+        tt.querySelector('.ds').innerHTML = T.source==='superset' ? 'from the Superset trips report'+(T.prevCovered && T.prev ? ' · '+dashVs(T.n, T.prev, true, R, 'trips') : '')
+          : none ? 'not recorded — daily trips start '+(T.since?dayName(T.since):'after the first night')
           : !T.covered ? 'from '+dayName(T.since)+' only — daily trips start then'
           : R.key==='today' ? 'since this morning, as of the last sync'
           : (T.isCycle ? 'since '+dayName(R.from)+' (the KPI count) · ' : '')+dashVs(T.n, T.prev, T.prevCovered, R, 'trips');
@@ -3896,8 +3897,16 @@ function trHistory(h){
   if(!h){ el.textContent='Could not load the uploads.'; return; }
   el.innerHTML = h.length ? '<div style="overflow-x:auto"><table><thead><tr><th>Days</th><th>Uploaded</th><th>By</th><th class="num">Captains</th><th class="num">New trips</th><th>Note</th></tr></thead><tbody>'+
     h.map(function(x){ return '<tr><td><b>'+esc(x.from && x.from!==x.asOf ? dayName(x.from)+' – '+dayName(x.asOf) : dayName(x.asOf))+'</b></td><td>'+esc(String(x.at||'').slice(0,16))+'</td><td>'+esc(x.by||'')+'</td><td class="num">'+num(x.drivers)+'</td>'+
-      '<td class="num"><b>'+num(x.newTrips)+'</b></td><td class="dim">'+esc(x.note||'')+'</td></tr>'; }).join('')+'</tbody></table></div>'
+      '<td class="num"><b>'+num(x.newTrips)+'</b></td><td class="dim">'+esc(x.note||'')+'</td>'+
+      '<td><span class="lnk" style="color:#b91c1c" onclick="trDelete(\''+esc(x.asOf)+'\')">delete</span></td></tr>'; }).join('')+'</tbody></table></div>'
     : 'None yet. The first upload sets each driver\'s starting count; from the second on, the trips of each day.';
+}
+function trDelete(asOf){
+  if(!confirm('Take back the upload of '+dayName(asOf)+'? The trips it added go.')) return;
+  run().withSuccessHandler(function(r){
+    if(!r || !r.ok){ notice((r&&r.msg)||'Not taken back'); return; }
+    toast('Taken back: '+num(r.trips)+' trips'); run().withSuccessHandler(function(h){ trHistory(h && h.ok ? h.history : null); }).tripUploads(SID);
+  }).deleteTripUpload(SID, asOf);
 }
 function pickReport(f){
   if(!f) return;
