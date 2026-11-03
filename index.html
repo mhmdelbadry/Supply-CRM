@@ -2918,7 +2918,7 @@ function drawKpi(){
           '<b>'+x.points.toFixed(1).replace(/\.0$/,'')+' <span class="dim">/ '+x.max+' pts</span></b></div>'+
         '<div class="kbar"><i data-w="'+Math.min(100, x.points/x.max*100)+'%"></i></div>'+
         // (2 Nov) what the leads are: the same New Lead count as the board
-        (x.key==='lead' && x.parts && x.pool ? '<div class="kc2parts">'+num(x.parts.won)+' onboarded · '+num(x.parts.open)+' still New Lead'+
+        (x.key==='lead' && x.parts && x.pool ? '<div class="kc2parts" title="Onboarded this cycle only — the board\'s Onboarding column also holds earlier cycles\' onboardings">'+num(x.parts.won)+' onboarded this cycle · '+num(x.parts.open)+' still New Lead'+
           (x.parts.turnedDown?' · '+num(x.parts.turnedDown)+' turned down':'')+(x.parts.later?' · '+num(x.parts.later)+' onboarded after the cycle':'')+'</div>' : '')+
         '<div class="kc2tip">'+(empty ? 'Counts once someone is in it' :
           hit ? (x.points>x.max ? '+'+(x.points-x.max).toFixed(1).replace(/\.0$/,'')+' above target' : 'Target met') :
@@ -3837,7 +3837,20 @@ function runStart(apply){
 /* ---------- Sync → Trips report (3 Nov) ----------
    Superset's completed trips per captain, counted up to the end of the day picked. The CRM keeps each
    driver's count from the upload before; the difference is the trips of the days between. */
-let TR_ROWS=null;
+let TR_ROWS=null, TR_KIND='range';
+function trKindHelp(){
+  return TR_KIND==='range'
+    ? 'Each number is the driver\'s trips <b>from the first day to the last</b> (both included) — kept as it is. Upload a day at a time (From = To) and any range you pick later adds up exactly. Days can be uploaded in any order; the same days again replace them.'
+    : 'Each number is <b>all</b> the driver\'s trips up to the end of the day. The CRM compares it with his count in the upload before: 10 yesterday, 15 today = 5 trips today. The first upload a driver is in sets his starting count.';
+}
+function trKind(k){
+  TR_KIND=k;
+  document.getElementById('trK1').className=k==='range'?'on':''; document.getElementById('trK2').className=k==='upto'?'on':'';
+  document.getElementById('trKindHelp').innerHTML=trKindHelp();
+  document.getElementById('trFromWrap').style.display=k==='range'?'inline-flex':'none';
+  document.getElementById('trToLbl').textContent=k==='range'?'To':'Up to the end of';
+  const o=document.getElementById('trOut'); if(o) o.innerHTML='';
+}
 function readTripFile(f, msgEl, done){
   msgEl.className='smsg'; msgEl.textContent='Reading the file…';
   const fin=function(table){ const rows=table && tripsFrom(table);
@@ -3856,10 +3869,14 @@ function drawTripReport(){
   const b=document.getElementById('body'), y=ymdLocal(new Date(today0().getTime()-86400000));
   TR_ROWS=null;
   b.innerHTML=syncTabs()+'<div class="panel" style="max-width:980px"><h4>Trips report</h4>'+
-    '<p class="dim" style="margin:-6px 0 14px">Superset\'s report of <b>completed</b> trips per captain, counted up to the end of the day you pick. '+
-      'The CRM compares each driver with his count in the upload before: the difference is the trips he made in the days between '+
-      '(10 yesterday, 15 today: 5 trips today). Upload it every day, the same kind of report each time. The first upload a driver is in sets his starting count.</p>'+
-    '<div class="dctl" style="margin-bottom:12px"><label class="dim" for="trAsOf">The report counts up to the end of</label>'+
+    '<p class="dim" style="margin:-6px 0 12px">Superset\'s report of <b>completed</b> trips per captain. Say what the file counts and the days it covers.</p>'+
+    '<div class="cf-seg" style="margin-bottom:12px"><button id="trK1" class="'+(TR_KIND==='range'?'on':'')+'" onclick="trKind(\'range\')">Trips between two days</button>'+
+      '<button id="trK2" class="'+(TR_KIND==='upto'?'on':'')+'" onclick="trKind(\'upto\')">All trips up to a day</button></div>'+
+    '<p class="dim" id="trKindHelp" style="margin:0 0 12px;font-size:12.5px">'+trKindHelp()+'</p>'+
+    '<div class="dctl" style="margin-bottom:12px">'+
+      '<span id="trFromWrap" style="display:'+(TR_KIND==='range'?'inline-flex':'none')+';gap:8px;align-items:center"><label class="dim" for="trFrom">From</label>'+
+        '<input type="date" id="trFrom" value="'+y+'" max="'+ymdLocal(today0())+'"></span>'+
+      '<label class="dim" for="trAsOf" id="trToLbl">'+(TR_KIND==='range'?'To':'Up to the end of')+'</label>'+
       '<input type="date" id="trAsOf" value="'+y+'" max="'+ymdLocal(today0())+'"></div>'+
     '<label class="sdrop" id="trDrop"><input type="file" id="trFile" accept=".xlsx,.csv" hidden onchange="pickReport(this.files[0])">'+
       '<b id="trTitle">Drop the Superset report here (Excel or CSV)</b><span id="trSub">captain_id and the number of completed rides</span></label>'+
@@ -3877,8 +3894,8 @@ function drawTripReport(){
 function trHistory(h){
   const el=document.getElementById('trHist'); if(!el) return;
   if(!h){ el.textContent='Could not load the uploads.'; return; }
-  el.innerHTML = h.length ? '<div style="overflow-x:auto"><table><thead><tr><th>Counts up to</th><th>Uploaded</th><th>By</th><th class="num">Captains</th><th class="num">New trips</th><th>Note</th></tr></thead><tbody>'+
-    h.map(function(x){ return '<tr><td><b>'+esc(dayName(x.asOf))+'</b></td><td>'+esc(String(x.at||'').slice(0,16))+'</td><td>'+esc(x.by||'')+'</td><td class="num">'+num(x.drivers)+'</td>'+
+  el.innerHTML = h.length ? '<div style="overflow-x:auto"><table><thead><tr><th>Days</th><th>Uploaded</th><th>By</th><th class="num">Captains</th><th class="num">New trips</th><th>Note</th></tr></thead><tbody>'+
+    h.map(function(x){ return '<tr><td><b>'+esc(x.from && x.from!==x.asOf ? dayName(x.from)+' – '+dayName(x.asOf) : dayName(x.asOf))+'</b></td><td>'+esc(String(x.at||'').slice(0,16))+'</td><td>'+esc(x.by||'')+'</td><td class="num">'+num(x.drivers)+'</td>'+
       '<td class="num"><b>'+num(x.newTrips)+'</b></td><td class="dim">'+esc(x.note||'')+'</td></tr>'; }).join('')+'</tbody></table></div>'
     : 'None yet. The first upload sets each driver\'s starting count; from the second on, the trips of each day.';
 }
@@ -3894,7 +3911,8 @@ function pickReport(f){
 function runReport(apply){
   if(!TR_ROWS) return;
   const asOf=document.getElementById('trAsOf').value, out=document.getElementById('trOut');
-  if(apply && !confirm('Upload this report as counting up to the end of '+dayName(asOf)+'?')) return;
+  const from=TR_KIND==='range' ? document.getElementById('trFrom').value : '';
+  if(apply && !confirm(from ? 'Upload this report as the trips from '+dayName(from)+' to '+dayName(asOf)+'?' : 'Upload this report as counting up to the end of '+dayName(asOf)+'?')) return;
   out.innerHTML='<p class="dim">'+(apply?'Uploading…':'Working it out…')+'</p>';
   run().withSuccessHandler(function(r){
     if(!r || !r.ok){ out.innerHTML='<div class="smsg bad">'+esc((r&&r.msg)||'No answer')+'</div>'; return; }
@@ -3912,7 +3930,7 @@ function runReport(apply){
         '</tbody></table></div>':'')+
       (r.lowerList.length?'<p class="dim" style="margin-top:10px">Lower than before: '+r.lowerList.slice(0,8).map(function(x){ return esc(x.name)+' '+num(x.before)+' → '+num(x.now); }).join(' · ')+'</p>':'');
     if(r.applied) trHistory(r.history);
-  }).uploadTripCounts(SID, { asOf: asOf, rows: TR_ROWS, apply: !!apply });
+  }).uploadTripCounts(SID, { asOf: asOf, from: from, rows: TR_ROWS, apply: !!apply });
 }
 /* ExcelJS is only needed here, so it is fetched the first time someone exports */
 function loadExcelJS(cb){
