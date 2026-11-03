@@ -2459,7 +2459,7 @@ function drawDashboard(){
         const T=r.trips;
         const none=!T.covered && (!T.since || T.since>R.upto);
         tt.querySelector('.dv').textContent=none ? '—' : num(T.n);
-        tt.querySelector('.ds').innerHTML = T.source==='superset' ? 'from the Superset trips report'+(T.prevCovered && T.prev ? ' · '+dashVs(T.n, T.prev, true, R, 'trips') : '')
+        tt.querySelector('.ds').innerHTML = T.source==='superset' ? 'from the Superset trips report'+(T.notInCrm ? ' · '+num(T.notInCrm)+' by captains not in the CRM' : '')+(T.prevCovered && T.prev ? ' · '+dashVs(T.n, T.prev, true, R, 'trips') : '')
           : none ? 'not recorded — daily trips start '+(T.since?dayName(T.since):'after the first night')
           : !T.covered ? 'from '+dayName(T.since)+' only — daily trips start then'
           : R.key==='today' ? 'since this morning, as of the last sync'
@@ -3931,7 +3931,7 @@ function runReport(apply){
       '<div class="dtiles" style="margin:8px 0 12px">'+
         '<div class="dtile"><div class="dl">New trips · '+esc(span)+'</div><div class="dv">'+num(r.newTrips)+'</div><div class="ds">'+num(r.withTrips)+' drivers drove</div></div>'+
         '<div class="dtile"><div class="dl">Starting counts</div><div class="dv">'+num(r.starting)+'</div><div class="ds">drivers in a report for the first time</div></div>'+
-        '<div class="dtile"><div class="dl">Not in the CRM</div><div class="dv">'+num(r.notInCrm)+'</div><div class="ds">captains — another service or city</div></div>'+
+        '<div class="dtile"><div class="dl">Not in the CRM</div><div class="dv">'+num(r.notInCrm)+'</div><div class="ds">captains'+(r.notInCrmTrips?' · '+num(r.notInCrmTrips)+' trips, counted for everyone, for no agent':' — another service or city')+'</div></div>'+
         '<div class="dtile'+(r.lower?' warn':'')+'"><div class="dl">Count went down</div><div class="dv">'+num(r.lower)+'</div><div class="ds">not used — a different report?</div></div>'+
       '</div>'+
       (r.agents.length?'<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers who drove</th><th class="num">Trips</th></tr></thead><tbody>'+
