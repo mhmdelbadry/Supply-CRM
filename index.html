@@ -2459,7 +2459,8 @@ function drawDashboard(){
         const T=r.trips;
         const none=!T.covered && (!T.since || T.since>R.upto);
         tt.querySelector('.dv').textContent=none ? '—' : num(T.n);
-        tt.querySelector('.ds').innerHTML = T.source==='superset' ? 'from the Superset trips report'+(T.notInCrm ? ' · '+num(T.notInCrm)+' by captains not in the CRM' : '')+(T.prevCovered && T.prev ? ' · '+dashVs(T.n, T.prev, true, R, 'trips') : '')
+        tt.querySelector('.ds').innerHTML = T.source==='mixed' ? 'Superset report to '+dayName(T.reportTo)+', then the CRM\'s own count'+(T.notInCrm ? ' · '+num(T.notInCrm)+' by captains not in the CRM' : '')
+          : T.source==='superset' ? 'from the Superset trips report'+(T.notInCrm ? ' · '+num(T.notInCrm)+' by captains not in the CRM' : '')+(T.prevCovered && T.prev ? ' · '+dashVs(T.n, T.prev, true, R, 'trips') : '')
           : none ? 'not recorded — daily trips start '+(T.since?dayName(T.since):'after the first night')
           : !T.covered ? 'from '+dayName(T.since)+' only — daily trips start then'
           : R.key==='today' ? 'since this morning, as of the last sync'
@@ -3701,6 +3702,7 @@ function tripsColumns(head){
 }
 function tripsFrom(table){
   for(let i=0;i<Math.min(table.length,10);i++){
+    if(fileKind(table[i]||[])==='drivers'){ tripsFrom.wrong='drivers'; return null; }
     const c=tripsColumns(table[i]||[]);
     if(c.id>-1 && c.n>-1) return table.slice(i+1).map(function(r){ return [String(r[c.id]==null?'':r[c.id]).trim(), Number(r[c.n])]; })
       .filter(function(r){ return r[0] && isFinite(r[1]); });
@@ -3720,28 +3722,11 @@ function csvTable(text){
 }
 function pickTrips(f){
   if(!f) return;
-  const msg=document.getElementById('tcMsg'); msg.className='smsg'; msg.textContent='Reading the file…';
-  const done=function(table){
-    const rows=table && tripsFrom(table);
-    if(!rows || !rows.length){ msg.className='smsg bad'; msg.textContent='No captain_id and completed-rides columns found in this file.'; return; }
-    TC_ROWS=rows; msg.textContent='';
+  readTripFile(f, document.getElementById('tcMsg'), function(rows){
+    TC_ROWS=rows;
     document.getElementById('tcTitle').textContent=f.name;
     document.getElementById('tcSub').textContent=num(rows.length)+' captains · '+num(rows.reduce(function(s,r){ return s+r[1]; },0))+' completed trips in the file';
     document.getElementById('tcGo').disabled=false;
-  };
-  if(/\.csv$/i.test(f.name)){ const r=new FileReader(); r.onload=function(){ done(csvTable(String(r.result||''))); }; r.readAsText(f); return; }
-  if(!/\.xlsx$/i.test(f.name)){ msg.className='smsg bad'; msg.textContent='Please choose the Excel (.xlsx) or CSV report.'; return; }
-  loadExcelJS(function(){
-    const r=new FileReader();
-    r.onload=function(){
-      const wb=new window.ExcelJS.Workbook();
-      wb.xlsx.load(r.result).then(function(){
-        const ws=wb.worksheets[0], table=[];
-        ws.eachRow({ includeEmpty:false }, function(row){ table.push(row.values.slice(1).map(function(v){ return v && typeof v==='object' && 'result' in v ? v.result : v; })); });
-        done(table);
-      }).catch(function(e){ msg.className='smsg bad'; msg.textContent='Could not read the Excel file: '+(e&&e.message||e); });
-    };
-    r.readAsArrayBuffer(f);
   });
 }
 function runTripsCheck(){
@@ -3800,23 +3785,11 @@ function tripsCheckExcel(){
 let FS_ROWS=null;
 function pickStart(f){
   if(!f) return;
-  const msg=document.getElementById('fsMsg'); msg.className='smsg'; msg.textContent='Reading the file…';
-  const done=function(table){
-    const rows=table && tripsFrom(table);
-    if(!rows || !rows.length){ msg.className='smsg bad'; msg.textContent='No captain_id and completed-rides columns found in this file.'; return; }
-    FS_ROWS=rows; msg.textContent='';
+  readTripFile(f, document.getElementById('fsMsg'), function(rows){
+    FS_ROWS=rows;
     document.getElementById('fsTitle').textContent=f.name;
     document.getElementById('fsSub').textContent=num(rows.length)+' captains · '+num(rows.reduce(function(s,r){ return s+r[1]; },0))+' completed trips (all time)';
     document.getElementById('fsPrev').disabled=false; document.getElementById('fsGo').disabled=true;
-  };
-  if(/\.csv$/i.test(f.name)){ const r=new FileReader(); r.onload=function(){ done(csvTable(String(r.result||''))); }; r.readAsText(f); return; }
-  loadExcelJS(function(){
-    const r=new FileReader();
-    r.onload=function(){ const wb=new window.ExcelJS.Workbook();
-      wb.xlsx.load(r.result).then(function(){ const table=[]; wb.worksheets[0].eachRow({includeEmpty:false}, function(row){
-        table.push(row.values.slice(1).map(function(v){ return v && typeof v==='object' && 'result' in v ? v.result : v; })); }); done(table); })
-      .catch(function(e){ msg.className='smsg bad'; msg.textContent='Could not read the Excel file: '+(e&&e.message||e); }); };
-    r.readAsArrayBuffer(f);
   });
 }
 function runStart(apply){
@@ -3854,7 +3827,8 @@ function trKind(k){
 }
 function readTripFile(f, msgEl, done){
   msgEl.className='smsg'; msgEl.textContent='Reading the file…';
-  const fin=function(table){ const rows=table && tripsFrom(table);
+  const fin=function(table){ tripsFrom.wrong=''; const rows=table && tripsFrom(table);
+    if(tripsFrom.wrong==='drivers'){ msgEl.className='smsg bad'; msgEl.textContent='This is the drivers file (a row per driver with his phone) — upload it in ① Drivers file.'; return; }
     if(!rows || !rows.length){ msgEl.className='smsg bad'; msgEl.textContent='No captain_id and completed-rides columns found in this file.'; return; }
     msgEl.textContent=''; done(rows); };
   if(/\.csv$/i.test(f.name)){ const r=new FileReader(); r.onload=function(){ fin(csvTable(String(r.result||''))); }; r.readAsText(f); return; }
@@ -3937,6 +3911,7 @@ function runReport(apply){
       (r.agents.length?'<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers who drove</th><th class="num">Trips</th></tr></thead><tbody>'+
         r.agents.map(function(a){ return '<tr><td><b>'+esc(a.agent||'Not assigned')+'</b></td><td class="num">'+num(a.drivers)+'</td><td class="num"><b>'+num(a.trips)+'</b></td></tr>'; }).join('')+
         '</tbody></table></div>':'')+
+      (r.tooMany?'<div class="smsg bad" style="margin-top:10px">'+num(r.tooMany)+' drivers have more than 60 trips a day in these days — is this the right report? (The drivers file holds all-time trips.)</div>':'')+
       (r.lowerList.length?'<p class="dim" style="margin-top:10px">Lower than before: '+r.lowerList.slice(0,8).map(function(x){ return esc(x.name)+' '+num(x.before)+' → '+num(x.now); }).join(' · ')+'</p>':'');
     if(r.applied) trHistory(r.history);
   }).uploadTripCounts(SID, { asOf: asOf, from: from, rows: TR_ROWS, apply: !!apply });
@@ -4137,9 +4112,25 @@ function buildWorkbook(ExcelJS, d, layout){
 let SYNC_TEXT = null;
 let SYNC_TAB='file';
 function syncTabs(){
-  return '<div class="cf-seg" style="margin-bottom:14px"><button class="'+(SYNC_TAB==='file'?'on':'')+'" onclick="SYNC_TAB=\'file\';drawSync()">Drivers file (daily sync)</button>'+
-    '<button class="'+(SYNC_TAB==='report'?'on':'')+'" onclick="SYNC_TAB=\'report\';drawSync()">Trips report (daily)</button>'+
-    '<button class="'+(SYNC_TAB==='trips'?'on':'')+'" onclick="SYNC_TAB=\'trips\';drawSync()">Trips check (Superset)</button></div>';
+  return '<div class="panel" style="max-width:980px;padding:14px 18px"><b>Every morning, two files</b>'+
+      '<div class="dim" style="font-size:13px;line-height:1.6;margin-top:4px">'+
+      '<b>① Drivers file</b> — the Superset drivers export (CSV, a row per driver with his phone): who is in the book, their stage, their trips so far.<br>'+
+      '<b>② Trips report</b> — Superset\'s completed trips per captain (captain_id) for yesterday: From = To = yesterday. The dashboard\'s trips come from it.<br>'+
+      '<b>Checks</b> — only when the numbers look off: set the CRM against a Superset report, or restart this cycle\'s counts. '+
+      'Each tab knows its file and turns the other one away.</div></div>'+
+    '<div class="cf-seg" style="margin-bottom:14px"><button class="'+(SYNC_TAB==='file'?'on':'')+'" onclick="SYNC_TAB=\'file\';drawSync()">① Drivers file</button>'+
+    '<button class="'+(SYNC_TAB==='report'?'on':'')+'" onclick="SYNC_TAB=\'report\';drawSync()">② Trips report</button>'+
+    '<button class="'+(SYNC_TAB==='trips'?'on':'')+'" onclick="SYNC_TAB=\'trips\';drawSync()">Checks</button></div>';
+}
+/* which file is this (3 Nov): the drivers export has a phone and the driver's details; the trips report
+   has a captain_id and completed rides, and no phone. Each tab turns the other's file away — the drivers
+   file in the trips report would have read every driver's all-time trips as trips of those days. */
+function fileKind(head){
+  const h=(head||[]).map(function(x){ return String(x==null?'':x).trim().toLowerCase(); });
+  const has=function(re){ return h.some(function(x){ return re.test(x); }); };
+  if(has(/^(phone|mobile|phone_number)$/) && (has(/stage|status|city|vehicle|total_rides|registered|name/))) return 'drivers';
+  if(has(/^(captain_?id|captain id|driver_?id|platform_?id|id)$/) && has(/completed|rides|trips/) && !has(/^(phone|mobile|phone_number)$/)) return 'trips';
+  return '';
 }
 function drawSync(){
   const b=document.getElementById('body');
@@ -4172,6 +4163,10 @@ function pickSync(f){
   const r=new FileReader();
   r.onload=function(){
     SYNC_TEXT=String(r.result||'');
+    if(fileKind((csvTable(SYNC_TEXT.split(/\r?\n/)[0]||'')[0])||[])==='trips'){
+      SYNC_TEXT=null; msg.className='smsg bad';
+      msg.textContent='This is the trips report (captain_id and completed rides) — upload it in ② Trips report.';
+      document.getElementById('sGo').disabled=true; return; }
     const rows=Math.max(0, SYNC_TEXT.split(/\r?\n/).filter(function(l){ return l.trim(); }).length-1);
     document.getElementById('sTitle').textContent=f.name;
     document.getElementById('sSub').textContent=num(rows)+' drivers in the file · '+(f.size/1024).toFixed(0)+' KB';
