@@ -753,6 +753,9 @@
   .ttable td.st,.ttable th.st{text-align:right;white-space:nowrap;}
   .ttable th.st i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0;}
   .ttable td.st small{color:var(--dim);font-size:11px;margin-left:3px;}
+  .ttable td.lnkcell{cursor:pointer;} .ttable td.lnkcell:hover{background:#eef4ff;box-shadow:inset 0 -2px 0 var(--blue);}
+  html[data-theme="dark"] .ttable td.lnkcell:hover{background:#1e2a4a;}
+  .acst{cursor:pointer;} .acst.on{outline:2px solid var(--blue);outline-offset:1px;}
   .dtile.good .dv{color:#17683a;}  .dtile.bad .dv{color:var(--alert);}  .dtile.warn .dv{color:#b45309;}
   .dtile.score{background:linear-gradient(135deg,#5000bc,#3b2fd0);border:0;color:#fff;}
   .dtile.score .dl,.dtile.score .ds,.dtile.score .dv .u{color:rgba(255,255,255,.78);}
@@ -2642,7 +2645,8 @@ function teamTable(todayStr, t0){
         '<td><div class="hbar"><i style="width:'+(r.n/max*100)+'%"></i><span>'+num(r.n)+
           ' · '+num(r.live)+' driving</span></div></td>'+
         '<td id="tw-'+cls(n)+'">'+weekCell({calls:0,answered:0})+'</td>'+
-        ST.map(function(st,i){ return '<td class="st" id="tc-'+cls(n)+'-'+i+'"><span class="dim">…</span></td>'; }).join('')+
+        ST.map(function(st,i){ return '<td class="st lnkcell" id="tc-'+cls(n)+'-'+i+'" title="Open '+esc(n)+'\'s calls to '+st+' drivers" '+
+          'onclick="event.stopPropagation();openAgentCalls(\''+esc(n).replace(/'/g,"\\'")+'\',\''+st+'\')"><span class="dim">…</span></td>'; }).join('')+
         '<td class="num" id="tt-'+cls(n)+'"><span class="dim">…</span></td>'+
         '<td id="ts-'+cls(n)+'"><span class="dim">'+(can('scoreboard')?'…':'—')+'</span></td>'+
         c(r.over,1)+
@@ -3484,23 +3488,36 @@ function drawAgentWork(who, callsOnly){
     const order=['Answered','No Answer','Busy','Switched Off','Called Back Later',"Couldn't reach him",'Wrong Number','Other'];
     const st=Object.keys(r.byStatus||{}).sort(function(a,b){ return (order.indexOf(a)<0?99:order.indexOf(a))-(order.indexOf(b)<0?99:order.indexOf(b)); });
     const onb=r.calls.filter(function(x){ return /^Interested, starting onboarding/.test(x.note); }).length;
+    window.AC_DATA=r;
     c.innerHTML='<div class="tph"><h4>Calls '+esc(when)+' · '+num(r.total)+'</h4>'+
         (r.calls.length ? '<span class="lnk" id="acToggle" onclick="toggleAgentCalls()">Show the calls</span>' : '')+'</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 4px">'+
         st.map(function(k){ return '<span class="awpill'+(k==='Answered'?' ok':'')+'">'+esc(k)+' <b>'+num(r.byStatus[k])+'</b></span>'; }).join('')+
         (onb ? '<span class="awpill ok">Moved to Onboarding <b>'+num(onb)+'</b></span>' : '')+'</div>'+
-      (r.calls.length ? '<div id="acList" style="display:none;margin-top:10px">'+
-        (r.total>r.calls.length ? '<p class="dim">The newest '+num(r.calls.length)+' of '+num(r.total)+'.</p>' : '')+
-        '<table><thead><tr><th>When</th><th>Driver</th><th>Picked up?</th><th>What they said</th></tr></thead><tbody>'+
-        r.calls.map(function(x){ return '<tr onclick="openDriver(\''+x.phone+'\')"><td class="dim">'+esc(x.when)+'</td>'+
-          '<td><b>'+esc(x.name||x.phone)+'</b><div class="dim" style="font-size:12px">'+x.phone+'</div></td>'+
-          '<td>'+esc(x.status)+'</td><td>'+esc(x.note)+'</td></tr>'; }).join('')+'</tbody></table></div>'
-        : '<p class="dim">No calls '+esc(when)+'.</p>');
+      (r.calls.length ? '<div id="acList" style="display:none;margin-top:10px"></div>' : '<p class="dim">No calls '+esc(when)+'.</p>');
+    drawAcList();
+    // opened from a stage in the team table: show those calls straight away
+    if(window.AC_OPEN && r.calls.length){ window.AC_OPEN=0; toggleAgentCalls(true); c.scrollIntoView({behavior:'smooth', block:'start'}); }
   }).getAgentCalls(SID, who, VIEW==='today' ? DRANGE : null);
 }
-function toggleAgentCalls(){
+/* the calls list, with the driver's stage when called and a filter by it (4 Nov) */
+function drawAcList(){
+  const l=document.getElementById('acList'), r=window.AC_DATA; if(!l || !r) return;
+  const by={}; r.calls.forEach(function(x){ const k=x.stage||'—'; by[k]=(by[k]||0)+1; });
+  const f=window.AC_STAGE||'', rows=f ? r.calls.filter(function(x){ return (x.stage||'—')===f; }) : r.calls;
+  l.innerHTML=(r.total>r.calls.length ? '<p class="dim">The newest '+num(r.calls.length)+' of '+num(r.total)+'.</p>' : '')+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="awpill acst'+(f?'':' on')+'" onclick="window.AC_STAGE=\'\';drawAcList()">All stages <b>'+num(r.calls.length)+'</b></span>'+
+      TEAM_STAGES.concat(['—']).filter(function(k){ return by[k]; }).map(function(k){
+        return '<span class="awpill acst'+(f===k?' on':'')+'" onclick="window.AC_STAGE=\''+k+'\';drawAcList()"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:'+(k==='—'?'#999':hue(k))+'"></i>'+k+' <b>'+num(by[k])+'</b></span>'; }).join('')+'</div>'+
+    '<table><thead><tr><th>When</th><th>Driver</th><th>Stage then</th><th>Picked up?</th><th>What they said</th></tr></thead><tbody>'+
+    rows.map(function(x){ return '<tr onclick="openDriver(\''+x.phone+'\')"><td class="dim" style="white-space:nowrap">'+esc(x.when)+'</td>'+
+      '<td><b>'+esc(x.name||x.phone)+'</b><div class="dim" style="font-size:12px">'+x.phone+'</div></td>'+
+      '<td>'+esc(x.stage||'—')+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.note)+'</td></tr>'; }).join('')+'</tbody></table>';
+}
+function openAgentCalls(name, stage){ window.AC_STAGE=stage||''; window.AC_OPEN=1; todayFor(name); }
+function toggleAgentCalls(force){
   const l=document.getElementById('acList'), t=document.getElementById('acToggle'); if(!l) return;
-  const open = l.style.display==='none';
+  const open = force===true ? true : l.style.display==='none';
   l.style.display = open ? '' : 'none'; if(t) t.textContent = open ? 'Hide the calls' : 'Show the calls';
 }
 function showAgentDrivers(who){
