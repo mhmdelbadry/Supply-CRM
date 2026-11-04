@@ -213,9 +213,63 @@
   .cl-head{padding:14px 18px 8px;} .cl-head h4{margin:0;font-size:15px;} .cl-head h4 em{font-style:normal;background:var(--c);color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:6px;}
   .cl-head p{margin:4px 0 0;font-size:12.5px;color:var(--dim);}
   .cl-list{padding:0 8px 8px;}
-  .cl-row{display:grid;grid-template-columns:minmax(0,1fr) auto 150px;gap:14px;align-items:center;padding:10px 10px;border-radius:8px;cursor:pointer;border-top:1px solid var(--line);}
+  /* (4 Nov) the scoreboard's podium: gold in the middle and highest, silver on the right, bronze on the left */
+  .podium{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1fr);align-items:end;gap:14px;max-width:820px;margin:0 auto 22px;padding-top:40px;}
+  .pd{display:flex;flex-direction:column;align-items:center;cursor:pointer;min-width:0;animation:pdUp .55s cubic-bezier(.2,.8,.2,1) both;}
+  .pd.p1{grid-column:2;grid-row:1;animation-delay:.05s;} .pd.p2{grid-column:3;grid-row:1;animation-delay:.18s;} .pd.p3{grid-column:1;grid-row:1;animation-delay:.3s;}
+  @keyframes pdUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:none;}}
+  .pd .medal{position:relative;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;
+     box-shadow:0 8px 22px rgba(0,0,0,.18), inset 0 -4px 10px rgba(0,0,0,.15);transition:transform .2s;}
+  .pd:hover .medal{transform:translateY(-4px) scale(1.04);}
+  .pd.p1 .medal{width:118px;height:118px;font-size:36px;background:radial-gradient(circle at 30% 28%,#fff6c8,#f5c518 38%,#c99400 100%);color:#5a4100;border:4px solid #ffe58a;}
+  .pd.p2 .medal{width:92px;height:92px;font-size:28px;background:radial-gradient(circle at 30% 28%,#ffffff,#cfd6df 40%,#8d99a8 100%);color:#36404d;border:4px solid #eef1f5;}
+  .pd.p3 .medal{width:92px;height:92px;font-size:28px;background:radial-gradient(circle at 30% 28%,#ffe2c4,#d58a45 40%,#9a5420 100%);color:#4a2508;border:4px solid #f3c79c;}
+  .pd .medal .no{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:700;padding:2px 9px;border-radius:10px;
+     background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 6px var(--shadow);}
+  .pd.p1 .medal::before{content:'♛';position:absolute;top:-30px;font-size:26px;color:#e0a800;text-shadow:0 2px 4px rgba(0,0,0,.15);}
+  .pd .who{margin-top:16px;font-weight:700;font-size:15px;text-align:center;color:var(--ink);}
+  .pd.p1 .who{font-size:17px;}
+  .pd .pts{font-size:13px;color:var(--dim);margin-top:2px;} .pd .pts b{color:var(--ink);font-size:18px;}
+  .pd .egp{margin-top:4px;font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:10px;background:#ecfdf3;color:#15803d;}
+  html[data-theme="dark"] .pd .egp{background:#0f2e1c;color:#86efac;}
+  .pd .step{width:100%;margin-top:12px;border-radius:12px 12px 4px 4px;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;
+     font-size:28px;font-weight:800;color:rgba(255,255,255,.9);}
+  .pd.p1 .step{height:96px;background:linear-gradient(180deg,#f5c518,#d9a300);} .pd.p2 .step{height:68px;background:linear-gradient(180deg,#c3ccd7,#9aa6b4);}
+  .pd.p3 .step{height:50px;background:linear-gradient(180deg,#d9904f,#b06a2c);}
+  .pd .minis{display:flex;gap:4px;margin-top:8px;} .pd .minis i{display:block;width:26px;height:5px;border-radius:3px;background:var(--line2,#eef0f4);overflow:hidden;}
+  .pd .minis i b{display:block;height:100%;background:var(--blue);}
+  .sb-rest{display:flex;flex-direction:column;gap:8px;margin:0 auto 20px;max-width:820px;}
+  .sb-r{display:grid;grid-template-columns:34px minmax(0,1fr) 140px 90px;gap:12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:10px;
+     background:var(--card);cursor:pointer;transition:transform .15s,box-shadow .15s;animation:pdUp .45s both;}
+  .sb-r:hover{transform:translateX(3px);box-shadow:0 4px 14px var(--shadow);}
+  .sb-r .n{width:30px;height:30px;border-radius:50%;background:var(--line2,#eef0f4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+  .sb-r .bar{height:8px;border-radius:5px;background:var(--line2,#eef0f4);overflow:hidden;} .sb-r .bar > i{display:block;height:8px;min-width:4px;background:linear-gradient(90deg,#6d4ce6,#3b6ee0);border-radius:5px;}
+  .sb-r .m{text-align:right;font-weight:700;}
+  .pd .who{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  @media(max-width:640px){ .podium{gap:6px;padding-top:34px;} .pd .minis{display:none;} .pd .pts b{font-size:15px;} .pd .egp{font-size:11.5px;padding:2px 7px;} .pd.p1 .medal{width:84px;height:84px;font-size:26px;} .pd.p2 .medal,.pd.p3 .medal{width:64px;height:64px;font-size:20px;}
+    .pd .who{font-size:13px;} .sb-r{grid-template-columns:30px minmax(0,1fr) 70px;} .sb-r .bar{display:none;} }
+  .cl-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto 130px;gap:14px;align-items:center;padding:10px 10px;border-radius:8px;cursor:pointer;border-top:1px solid var(--line);}
+  /* (4 Nov) the page that says who to call: today's progress, what each list is worth, the last call, one tap to call */
+  .cl-plan{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 4px;}
+  .cl-prog{flex:1;min-width:220px;}
+  .cl-prog .bar{height:10px;border-radius:6px;background:var(--line2,#eef0f4);overflow:hidden;}
+  .cl-prog .bar > i{display:block;height:10px;min-width:3px;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:6px;transition:width .4s;}
+  .cl-prog p{margin:5px 0 0;font-size:12.5px;color:var(--dim);}
+  .cl-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .cl-tools input[type=search]{border:1px solid var(--fieldline);background:var(--field);color:var(--ink);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;width:200px;}
+  .cl-tog{border:1px solid var(--line);border-radius:18px;padding:6px 12px;font-size:12.5px;cursor:pointer;background:var(--card);color:var(--ink);user-select:none;}
+  .cl-tog.on{background:#eef4ff;border-color:#bcd0fb;color:#1d4ed8;}
+  html[data-theme="dark"] .cl-tog.on{background:#1e2a4a;border-color:#2f4f9a;color:#bcd0fb;}
+  .cl-worth{display:inline-block;margin-left:8px;font-size:12px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);padding:2px 8px;border-radius:10px;}
+  .cl-last{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;line-height:1.35;}
+  .cl-last b{color:var(--ink);font-weight:600;} .cl-last .due{color:#b45309;font-weight:600;} .cl-last .late{color:#c23434;font-weight:600;}
+  .cl-acts{display:flex;gap:6px;margin-top:5px;}
+  .cl-acts a{font-size:12px;font-weight:600;text-decoration:none;padding:3px 10px;border-radius:12px;border:1px solid var(--line);color:var(--ink);background:var(--card);}
+  .cl-acts a:hover{border-color:var(--blue);color:var(--blue);} .cl-acts a.wa:hover{border-color:#16a34a;color:#16a34a;}
+  .cl-row.done{opacity:.55;}
+  @media(max-width:700px){ .cl-row{grid-template-columns:minmax(0,1fr) auto;} .cl-row .cl-last{grid-column:1/-1;text-align:left;} .cl-tools input[type=search]{width:100%;} }
   .cl-row:first-child{border-top:0;} .cl-row:hover{background:var(--line2,#f4f5f8);}
-  .cl-who b{font-size:14px;} .cl-who span{display:block;font-size:12px;color:var(--dim);margin-top:2px;}
+  .cl-who b{font-size:14px;} .cl-who > span{display:block;font-size:12px;color:var(--dim);margin-top:2px;} .cl-who > span.called{display:inline;margin-left:4px;}
   .cl-num{text-align:right;} .cl-num b{display:block;font-size:20px;line-height:1.1;} .cl-num span{font-size:11.5px;color:var(--dim);}
   .cl-tag{font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;background:var(--line2,#eef0f4);color:var(--dim);white-space:nowrap;}
   .cl-tag.red{background:#fee2e2;color:#b91c1c;} .cl-tag.amber{background:#fef3c7;color:#b45309;} .cl-tag.blue{background:#dbeafe;color:#1d4ed8;} .cl-tag.green{background:#dcfce7;color:#15803d;}
@@ -264,6 +318,7 @@
   .an-f.net{background:var(--line2,#f4f5f8);} .an-f.net.neg b{color:#dc2626;} .an-f.net.pos b{color:#16a34a;}
   .an-d{font-size:11.5px;font-weight:600;cursor:help;} .an-d.good{color:#15803d;} .an-d.bad{color:#b91c1c;} .an-d.same{color:var(--dim);font-weight:500;}
   .an-chart{height:auto;} .an-legend{font-size:12px;color:var(--dim);margin-top:4px;}
+  .an-ch .an-cv{position:relative;width:100%;}
   .an-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;}
   .an-fun{display:grid;grid-template-columns:110px minmax(0,1fr) 56px 40px;gap:10px;align-items:center;font-size:13px;padding:5px 0;}
   .an-fun b{text-align:right;} .an-fun em{font-style:normal;color:var(--dim);font-size:12px;text-align:right;}
@@ -666,7 +721,38 @@
   .dtile .dv .u{font-size:13px;font-weight:500;color:var(--dim);margin-right:3px;letter-spacing:0;}
   .dtile .ds{font-size:12px;color:var(--dim);line-height:1.35;}   /* the whole line, wrapped — never cut off */
   .dtile .ds:empty{display:none;}
-  .dtiles.dash .ds,.an-cards .ds{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}   /* dashboard, Analytics: one short line */
+  .an-cards .ds{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}   /* Analytics: one short line */
+  /* (4 Nov) dashboard tiles: a colour each (a strip and a dot), the number in ink, a plain line saying what
+     it is; they lift on hover and open what they count */
+  .dtiles.dash .dtile{position:relative;cursor:pointer;border-top:3px solid var(--acc,#94a3b8);
+     transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;}
+  .dtiles.dash .dtile:hover{transform:translateY(-2px);box-shadow:0 8px 20px var(--shadow);border-color:var(--acc);}
+  .dtiles.dash .dtile:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+  .dtiles.dash .dtile .dl{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--ink);}
+  .dtiles.dash .dtile .dl::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--acc);flex:none;}
+  .dtiles.dash .dtile .dl::after{content:'→';margin-left:auto;color:var(--acc);opacity:0;transform:translateX(-4px);transition:.15s;}
+  .dtiles.dash .dtile:hover .dl::after{opacity:1;transform:none;}
+  .dtiles.dash .dtile .dv{color:var(--ink);}
+  .dtiles.dash .dtile .ds{line-height:1.3;}
+  .dtiles.dash .t-book{--acc:#3b6ee0;} .dtiles.dash .t-drive{--acc:#16a34a;} .dtiles.dash .t-trips{--acc:#0e9384;}
+  .dtiles.dash .t-calls{--acc:#6d4ce6;} .dtiles.dash .t-late{--acc:#d64545;} .dtiles.dash .t-risk{--acc:#e08a12;}
+  .dtiles.dash .t-late.on .dv{color:#c23434;} .dtiles.dash .t-risk.on .dv{color:#b86a00;}
+  .dtiles.dash .dtile.score{--acc:#a78bfa;border-top:0;}
+  .dtiles.dash .dtile.score .dl,.dtiles.dash .dtile.score .dv{color:#fff;}
+  /* the chart and the ring sit side by side at the same height */
+  .dgrid.even{align-items:stretch;} .dgrid.even > .panel{display:flex;flex-direction:column;}
+  .dgrid.even .ringwrap{flex:1;display:flex;align-items:center;}
+  .dgrid.even .ringwrap > *{width:100%;}
+  /* the team table: wide, scrolls sideways; the agent's name stays in view */
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .ttable.wide{min-width:1380px;} .ttable.wide td,.ttable.wide th{white-space:nowrap;}
+  .ttable.wide th:first-child,.ttable.wide td:first-child{position:sticky;left:0;background:var(--card);z-index:1;}
+  .ttable.wide thead th:first-child{background:var(--thead);}
+  .ttable.wide tbody tr:hover td:first-child{background:var(--hover);}
+  .ttable .grp{text-align:center;border-bottom:1px solid var(--line);font-size:11.5px;letter-spacing:.3px;text-transform:uppercase;color:var(--dim);}
+  .ttable td.st,.ttable th.st{text-align:right;white-space:nowrap;}
+  .ttable th.st i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0;}
+  .ttable td.st small{color:var(--dim);font-size:11px;margin-left:3px;}
   .dtile.good .dv{color:#17683a;}  .dtile.bad .dv{color:var(--alert);}  .dtile.warn .dv{color:#b45309;}
   .dtile.score{background:linear-gradient(135deg,#5000bc,#3b2fd0);border:0;color:#fff;}
   .dtile.score .dl,.dtile.score .ds,.dtile.score .dv .u{color:rgba(255,255,255,.78);}
@@ -2379,19 +2465,22 @@ function drawDashboard(){
       : (DASH_LIST.filter(function(r){ return r[0]===DRANGE.key; })[0]||['','Today'])[1].toLowerCase();
     // 4 Nov: small tiles — a label, the number, at most one short line; the period is in the picker above
     const tile=function(label, value, sub, cls, onclick, tip, id){
-      return '<div class="dtile'+(cls?' '+cls:'')+'"'+(id?' id="'+id+'"':'')+(onclick?' onclick="'+onclick+'"':'')+(tip?' title="'+tip+'"':'')+'>'+
+      return '<div class="dtile'+(cls?' '+cls:'')+'" role="listitem" tabindex="0"'+(id?' id="'+id+'"':'')+
+        (onclick?' onclick="'+onclick+'" onkeydown="if(event.key===\'Enter\')this.click()"':'')+(tip?' title="'+tip+'"':'')+'>'+
         '<div class="dl">'+label+'</div><div class="dv">'+value+'</div><div class="ds">'+sub+'</div></div>';
     };
-    const tiles='<div class="dtiles dash">'+
-      tile('Drivers', num(total), '', '', "go('pipeline')", 'Every driver in '+(who ? esc(who)+'\'s book' : isMgr() ? 'the book' : 'your book')+', right now')+
-      tile('Driving', num(live), total ? Math.round(live/total*100)+'% of the book' : '', 'good', "goStage('Active')", 'Drove in the last 5 days')+
-      tile('Completed trips', '…', '', 'per', "KPI_WHO='"+esc(who)+"';go('kpi')", '', 'dTrips')+
-      tile('Calls', DRANGE.key==='today' ? num(calledToday) : '…', '', 'per', "jumpTo('"+(isMgr() && !who ? 'dTeam' : 'agentWork')+"')", '', 'dCallsT')+
-      tile('Overdue follow-ups', num(overdue), '', overdue?'bad':'', "go('overdue')", 'Follow-ups past their date, right now')+
-      tile('At risk', num(atRisk), 'idle 3–5 days', atRisk?'warn':'', "go('atRisk')", 'Driving, but idle 3 to 5 days, right now')+
+    // (4 Nov) each tile: what it counts in a plain line, a colour of its own, and it opens what it counts
+    const bookOf = who ? esc(who)+'\'s book' : isMgr() ? 'the whole book' : 'your book';
+    const tiles='<div class="dtiles dash" role="list">'+
+      tile('Drivers', num(total), 'Everyone in '+bookOf, 't-book', "go('pipeline')", 'Open all drivers')+
+      tile('Driving', num(live), (total ? Math.round(live/total*100)+'% · ' : '')+'drove in the last 5 days', 't-drive', "goStage('Active')", 'Open the drivers on the road')+
+      tile('Completed trips', '…', 'Trips the drivers finished', 't-trips', "KPI_WHO='"+esc(who)+"';go('kpi')", '', 'dTrips')+
+      tile('Calls', DRANGE.key==='today' ? num(calledToday) : '…', 'Calls made in this period', 't-calls', "jumpTo('"+(isMgr() && !who ? 'dTeam' : 'agentWork')+"')", '', 'dCallsT')+
+      tile('Overdue', num(overdue), overdue ? 'Follow-ups past their date — call them' : 'No follow-up is late', 't-late'+(overdue?' on':''), "go('overdue')", 'Open the late follow-ups')+
+      tile('At risk', num(atRisk), 'Idle 3–5 days — call before they churn', 't-risk'+(atRisk?' on':''), "go('atRisk')", 'Open the drivers at risk')+
       (isMgr() && !can('scoreboard') ? '' : isMgr() && !who
-        ? tile('Incentives this cycle', '…', '', 'score', "go('team')", '', 'dScoreTile')
-        : tile((who?esc(who)+'\'s':'Your')+' score', '…', '', 'score', "KPI_WHO='"+esc(who)+"';go('kpi')", 'This cycle', 'dScoreTile'))+
+        ? tile('Incentives this cycle', '…', 'What the agents earn so far', 'score', "go('team')", 'Open the scoreboard', 'dScoreTile')
+        : tile((who?esc(who)+'\'s':'Your')+' score', '…', 'This cycle so far', 'score', "KPI_WHO='"+esc(who)+"';go('kpi')", 'Open the KPI page', 'dScoreTile'))+
     '</div>';
 
     /* ---------- stage ring ---------- */
@@ -2418,12 +2507,12 @@ function drawDashboard(){
         (who ? ' · showing <b>'+esc(who)+'</b> <span class="lnk" onclick="todayFor(\'\')">show everyone</span>' : '')+
       '</p></div>'+dashCtl()+'</div>'+
       tiles+
-      '<div class="dgrid">'+
+      '<div class="dgrid even">'+
         '<div class="panel"><div class="tph"><h4 id="dCallsH">Calls</h4>'+
           '<span class="dlegend"><i class="lg a"></i>answered <i class="lg n"></i>no answer</span></div>'+
           '<div id="dCalls" class="dchart"><div class="dim" style="padding:40px 0;text-align:center">Loading…</div></div></div>'+
         '<div class="panel"><div class="tph"><h4>Where the drivers are</h4>'+
-          '<span class="dim">'+num(total)+'</span></div>'+ring+'</div>'+
+          '<span class="dim">'+num(total)+'</span></div><div class="ringwrap">'+ring+'</div></div>'+
       '</div>'+
       // "Do these now" is the agent's own to-do: managers and the owner don't get it (19 Oct)
       '<div class="'+(isMgr()?'':'dgrid')+'">'+
@@ -2451,10 +2540,14 @@ function drawDashboard(){
         ct.title='The CRM\'s calls start '+dayName(r.calls.since);
       } else if(ct && r.calls){
         ct.querySelector('.dv').innerHTML=num(r.calls.n)+dashDelta(r.calls.n, r.calls.prev, r.calls.covered, R);
-        ct.querySelector('.ds').textContent=r.calls.n ? Math.round(r.calls.answered/r.calls.n*100)+'% answered' : '';
+        ct.querySelector('.ds').textContent=r.calls.n ? Math.round(r.calls.answered/r.calls.n*100)+'% answered — the driver picked up' : 'No calls in this period';
       }
+      document.querySelectorAll('[id^="tc-"]').forEach(function(c){ c.innerHTML='<span class="dim">0</span>'; });
       Object.keys(r.team||{}).forEach(function(a){
         const c=document.getElementById('tw-'+cls(a)); if(c) c.innerHTML=weekCell(r.team[a]);
+        TEAM_STAGES.forEach(function(st,i){ const e=document.getElementById('tc-'+cls(a)+'-'+i);
+          if(e){ const g=(r.team[a].stages||{})[st]; e.innerHTML=stageCell(g);
+            if(g && g.calls) e.title=num(g.calls)+' calls to '+st+' drivers · '+num(g.answered)+' answered'; } });
       });
       if(r.trips && r.trips.byAgent) document.querySelectorAll('[id^="tt-"]').forEach(function(c){ c.innerHTML='<span class="dim">0</span>'; });
       if(r.trips && r.trips.byAgent) Object.keys(r.trips.byAgent).forEach(function(a){
@@ -2465,7 +2558,8 @@ function drawDashboard(){
         const none=!T.covered && (!T.since || T.since>R.upto);
         tt.querySelector('.dv').innerHTML=none ? '—' : num(T.n)+(T.covered ? dashDelta(T.n, T.prev, T.prevCovered, R) : '');
         // under the number only what changes how it reads; where it came from is on hover
-        tt.querySelector('.ds').textContent = none ? 'not recorded' : !T.covered ? 'from '+dayName(T.since) : '';
+        tt.querySelector('.ds').textContent = none ? 'Not recorded for these days' : !T.covered ? 'Counted from '+dayName(T.since)
+          : R.key==='today' ? 'Finished today, so far' : 'Trips the drivers finished';
         tt.title = T.source==='mixed' ? 'The trips report to '+dayName(T.reportTo)+', then the CRM\'s own count'
           : T.source==='superset' ? 'From the trips report'
           : none ? 'Daily trips start '+(T.since?dayName(T.since):'after the first night')
@@ -2480,7 +2574,7 @@ function drawDashboard(){
       if(!k || !k.ok) return;
       const tileEl=(isMgr() && !who) ? null : document.getElementById('dScoreTile');   // the team tile is filled below
       if(tileEl){ tileEl.querySelector('.dv').innerHTML=money(k.money);
-        tileEl.querySelector('.ds').textContent=k.total.toFixed(1).replace(/\.0$/,'')+' points';
+        tileEl.querySelector('.ds').textContent=k.total.toFixed(1).replace(/\.0$/,'')+' points this cycle';
         if(k.next) tileEl.title=Math.max(0,k.next.points-k.total).toFixed(1).replace(/\.0$/,'')+' points to '+egp(k.next.money); }
       const g=document.getElementById('dGuide'); if(g) g.innerHTML=kpiGuide(k, who);
       const kp=document.getElementById('dKpi'); if(!kp) return;
@@ -2502,7 +2596,7 @@ function drawDashboard(){
         const el=document.getElementById('dScoreTile'); if(!el || !r || !r.ok) return;
         el.querySelector('.dv').innerHTML=money(r.totalMoney);
         const paid=r.rows.filter(function(x){ return x.money>0; }).length;
-        el.querySelector('.ds').textContent=paid+' of '+r.rows.length+' agents earning';
+        el.querySelector('.ds').textContent=paid+' of '+r.rows.length+' agents earning so far';
         r.rows.forEach(function(x){                                   // the team table's score column
           const c=document.getElementById('ts-'+cls(x.agent));
           if(c) c.innerHTML='<b>'+Number(x.total).toFixed(1).replace(/\.0$/,'')+'</b> <span class="dim">pts</span> · '+money(x.money); });
@@ -2535,14 +2629,20 @@ function teamTable(todayStr, t0){
   const names=Object.keys(by).filter(Boolean).sort(function(a,b){ return by[b].over-by[a].over || a.localeCompare(b); });
   const max=Math.max(1, names.reduce(function(m,n){ return Math.max(m, by[n].n); },0));
   const c=function(v,warn){ return '<td class="num'+(v&&warn?' warn':'')+'">'+(v?num(v):'<span class="dim">0</span>')+'</td>'; };
-  return '<div style="overflow-x:auto"><table class="ttable"><thead><tr><th>Agent</th><th>Book</th>'+
-      '<th>Calls</th><th class="num">Trips</th><th>Score</th><th class="num">Overdue</th><th class="num">At risk</th>'+
-      '<th class="num">Untouched leads</th></tr></thead><tbody>'+
+  // (4 Nov) the calls split by the stage the driver was in when called; the table scrolls sideways
+  const ST=TEAM_STAGES;
+  return '<div class="tscroll"><table class="ttable wide"><thead>'+
+      '<tr><th rowspan="2">Agent</th><th rowspan="2">Book</th><th rowspan="2">Calls</th>'+
+      '<th class="grp" colspan="'+ST.length+'">Calls by the driver\'s stage <span style="text-transform:none;letter-spacing:0">· % answered</span></th>'+
+      '<th class="num" rowspan="2">Trips</th><th rowspan="2">Score</th><th class="num" rowspan="2">Overdue</th><th class="num" rowspan="2">At risk</th>'+
+      '<th class="num" rowspan="2">Untouched leads</th></tr>'+
+      '<tr>'+ST.map(function(st){ return '<th class="st"><i style="background:'+hue(st)+'"></i>'+esc(st)+'</th>'; }).join('')+'</tr></thead><tbody>'+
     names.map(function(n){ const r=by[n];
       return '<tr onclick="todayFor(\''+esc(n).replace(/'/g,"\\'")+'\')"><td><b>'+esc(n)+'</b></td>'+
         '<td><div class="hbar"><i style="width:'+(r.n/max*100)+'%"></i><span>'+num(r.n)+
           ' · '+num(r.live)+' driving</span></div></td>'+
         '<td id="tw-'+cls(n)+'">'+weekCell({calls:0,answered:0})+'</td>'+
+        ST.map(function(st,i){ return '<td class="st" id="tc-'+cls(n)+'-'+i+'"><span class="dim">…</span></td>'; }).join('')+
         '<td class="num" id="tt-'+cls(n)+'"><span class="dim">…</span></td>'+
         '<td id="ts-'+cls(n)+'"><span class="dim">'+(can('scoreboard')?'…':'—')+'</span></td>'+
         c(r.over,1)+
@@ -2550,8 +2650,13 @@ function teamTable(todayStr, t0){
           (r.risk ? num(r.risk)+' <span class="dim" style="font-size:11.5px">· '+num(r.riskCalled)+' called</span>' : '<span class="dim">0</span>')+'</td>'+
         c(r.leads)+'</tr>'; }).join('')+
     (by[''] ? '<tr class="off" onclick="go(\'unassigned\')"><td>Not assigned yet</td><td>'+num(by[''].n)+
-      '</td><td colspan="6" class="dim">'+num(by[''].leads)+' new leads waiting — <span class="lnk">assign them</span></td></tr>' : '')+
+      '</td><td colspan="'+(7+ST.length)+'" class="dim">'+num(by[''].leads)+' new leads waiting — <span class="lnk">assign them</span></td></tr>' : '')+
     '</tbody></table></div>';
+}
+const TEAM_STAGES=['New Lead','Onboarding','New Active','Active','Churned','Rejected'];
+function stageCell(g){
+  if(!g || !g.calls) return '<span class="dim">0</span>';
+  return '<b>'+num(g.calls)+'</b><small>'+Math.round(g.answered/g.calls*100)+'%</small>';
 }
 function weekCell(t){
   const rate=t.calls ? Math.round(t.answered/t.calls*100) : 0;
@@ -3110,8 +3215,114 @@ function paintAnalytics(r){
     '<tr class="tot"><td>All agents</td><td class="num">'+num(team.book||0)+' <span class="dim">· '+num(team.working||0)+' driving</span></td><td class="num"><b>'+(r.rec.trips?num(team.trips||0):'—')+'</b></td>'+
       cols.map(function(c,i){ const v=avg[i]; return '<td class="num">'+(v===null||v===undefined||isNaN(v)?'—':c[2](v))+'</td>'; }).join('')+'</tr>'+
     '</tbody></table></div></div>';
-  b.innerHTML=supply+work+'<div class="dgrid an-2">'+funnel+leaks+'</div>'+agents+'<div class="dgrid an-2">'+calling+'<div id="anaPace"></div></div>';
+  /* (4 Nov) the charts: the trend of the output, the supply behind it, the calling, the agents side by side,
+     and what the incentives cost cycle by cycle — drawn with Chart.js, interactive (hover for numbers) */
+  const chart=function(id, title, sub, h){ return '<div class="panel an-ch"><div class="tph"><h4>'+title+'</h4><span class="dim">'+sub+'</span></div>'+
+      '<div class="an-cv" style="height:'+(h||260)+'px"><canvas id="'+id+'"></canvas></div></div>'; };
+  const charts=
+    chart('chTrips', 'Completed trips a day', 'this period against the one before · the dotted line is the 7-day average', 280)+
+    '<div class="dgrid an-2 even">'+
+      chart('chSupply', 'Drivers on the road, and trips per driver', 'are more drivers making more trips?')+
+      chart('chCalls', 'Calls a day, and how many were answered', 'the bars are calls · the line is % answered')+
+    '</div>'+
+    (r.agent ? '' : '<div class="dgrid an-2 even">'+
+      chart('chAgents', 'The agents: calls and what came of them', 'calls, answered, onboarded — this period', Math.max(220, rows.length*46+60))+
+      chart('chProd', 'Trips per driver on the road, by agent', 'the line is the team\'s figure', Math.max(220, rows.length*46+60))+
+    '</div>')+
+    (anaPayRows(r).length ? chart('chPay', 'Incentives paid, cycle by cycle', 'EGP per agent · closed cycles', 240) : '');
+  b.innerHTML=supply+work+charts+'<div class="dgrid an-2">'+funnel+leaks+'</div>'+agents+'<div class="dgrid an-2">'+calling+'<div id="anaPace"></div></div>';
   anaPace(r);
+  anaCharts(r, rows, team);
+}
+/* the closed cycles' payouts, agents only (the saved results also hold the team's line and managers'), and
+   only when something was paid — an empty chart is filler */
+function anaPayRows(r){
+  const ag=r.agentList||[], rows=(r.cycles||[]).filter(function(x){ return ag.indexOf(x.agent)>-1; });
+  return rows.some(function(x){ return Number(x.money)>0; }) ? rows : [];
+}
+/* Chart.js, loaded once, from the same place as ExcelJS (cdnjs) */
+function loadChartJS(cb, fail){
+  if(window.Chart) return cb();
+  if(window.CHART_WAIT){ window.CHART_WAIT.push([cb,fail]); return; }
+  window.CHART_WAIT=[[cb,fail]];
+  // the file as published in the chart.js 4.4.1 package (dist/chart.umd.js); a second place if the first fails
+  const urls=['https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js',
+              'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'];
+  const done=function(ok){ const w=window.CHART_WAIT; window.CHART_WAIT=null; w.forEach(function(x){ if(ok) x[0](); else if(x[1]) x[1](); }); };
+  const tryAt=function(i){
+    if(i>=urls.length) return done(false);
+    const sc=document.createElement('script'); sc.src=urls[i];
+    sc.onload=function(){ window.Chart ? done(true) : tryAt(i+1); };
+    sc.onerror=function(){ tryAt(i+1); };
+    document.head.appendChild(sc); };
+  tryAt(0);
+}
+function anaCharts(r, rows, team){
+  (window.ANA_CHARTS||[]).forEach(function(c){ try{ c.destroy(); }catch(e){} }); window.ANA_CHARTS=[];
+  loadChartJS(function(){
+    if(VIEW!=='analytics') return;
+    const css=getComputedStyle(document.documentElement), v=function(n,d){ return (css.getPropertyValue(n)||'').trim()||d; };
+    const ink=v('--ink','#1f2633'), dim=v('--dim','#6b7380'), grid=v('--line','#e6e8ee');
+    Chart.defaults.color=dim; Chart.defaults.borderColor=grid; Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;
+    Chart.defaults.plugins.tooltip.backgroundColor='rgba(20,24,33,.92)'; Chart.defaults.plugins.tooltip.padding=10;
+    Chart.defaults.plugins.legend.labels.boxWidth=10; Chart.defaults.plugins.legend.labels.usePointStyle=true;
+    Chart.defaults.maintainAspectRatio=false; Chart.defaults.interaction={ mode:'index', intersect:false };
+    const make=function(id, cfg){ const el=document.getElementById(id); if(!el) return; window.ANA_CHARTS.push(new Chart(el, cfg)); };
+    const lbl=function(d){ const p=String(d).split('-'); return Number(p[2])+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1])-1]; };
+    const S=r.series||[], PS=r.prevSeries||[];
+    const tripOf=function(x){ return x.rep!==null && x.rep!==undefined ? x.rep : (x.trips===null || x.trips===undefined ? null : x.trips); };
+    const labels=S.map(function(x){ return lbl(x.d); });
+    const now=S.map(tripOf), before=S.map(function(x,i){ const p=PS[i]; return p ? tripOf(p) : null; });
+    const avg=now.map(function(x,i){ if(x===null) return null; const w=now.slice(Math.max(0,i-6), i+1).filter(function(y){ return y!==null; }); return w.length>=3 ? Math.round(w.reduce(function(a,b){ return a+b; },0)/w.length) : null; });
+    make('chTrips', { type:'line', data:{ labels:labels, datasets:[
+        { label:'This period', data:now, borderColor:'#0e9384', backgroundColor:'rgba(14,147,132,.12)', fill:true, tension:.3, pointRadius:2, spanGaps:false },
+        { label:'The period before', data:before, borderColor:'#94a3b8', borderDash:[5,4], pointRadius:0, tension:.3 },
+        { label:'7-day average', data:avg, borderColor:'#6d4ce6', borderDash:[2,3], pointRadius:0, tension:.3 } ] },
+      options:{ plugins:{ tooltip:{ callbacks:{ title:function(i){ const k=i[0].dataIndex; return S[k] ? dayName(S[k].d) : ''; } } } },
+        scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } }, x:{ grid:{ display:false } } } } });
+    const working=S.map(function(x){ return x.working===null || x.working===undefined ? null : x.working; });
+    const perDriver=S.map(function(x,i){ const t=now[i], w=working[i]; return t!==null && w ? Math.round(t/w*10)/10 : null; });
+    make('chSupply', { data:{ labels:labels, datasets:[
+        { type:'bar', label:'Drivers on the road', data:working, backgroundColor:'rgba(22,163,74,.55)', borderRadius:4, yAxisID:'y' },
+        { type:'line', label:'Trips per driver', data:perDriver, borderColor:'#e08a12', backgroundColor:'#e08a12', tension:.3, pointRadius:2, yAxisID:'y2' } ] },
+      options:{ scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } }, y2:{ position:'right', beginAtZero:true, grid:{ display:false } }, x:{ grid:{ display:false } } } } });
+    const ans=S.map(function(x){ return x.answered||0; }), no=S.map(function(x){ return Math.max(0,(x.calls||0)-(x.answered||0)); });
+    const rate=S.map(function(x){ return x.calls ? Math.round((x.answered||0)/x.calls*100) : null; });
+    make('chCalls', { data:{ labels:labels, datasets:[
+        { type:'bar', label:'Answered', data:ans, backgroundColor:'#3b6ee0', stack:'c', borderRadius:3 },
+        { type:'bar', label:'No answer', data:no, backgroundColor:'rgba(148,163,184,.45)', stack:'c', borderRadius:3 },
+        { type:'line', label:'% answered', data:rate, borderColor:'#6d4ce6', pointRadius:2, tension:.3, yAxisID:'y2' } ] },
+      options:{ scales:{ x:{ stacked:true, grid:{ display:false } }, y:{ stacked:true, beginAtZero:true, ticks:{ precision:0 } },
+        y2:{ position:'right', min:0, max:100, grid:{ display:false }, ticks:{ callback:function(t){ return t+'%'; } } } } } });
+    if(rows && rows.length){
+      const names=rows.map(function(a){ return a.agent; });
+      make('chAgents', { type:'bar', data:{ labels:names, datasets:[
+          { label:'Calls', data:rows.map(function(a){ return a.calls||0; }), backgroundColor:'rgba(109,76,230,.35)', borderRadius:4 },
+          { label:'Answered', data:rows.map(function(a){ return a.answered||0; }), backgroundColor:'#6d4ce6', borderRadius:4 },
+          { label:'Onboarded', data:rows.map(function(a){ return a.onboarded||0; }), backgroundColor:'#0e9384', borderRadius:4 } ] },
+        options:{ indexAxis:'y', interaction:{ mode:'index', axis:'y', intersect:false }, scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } }, y:{ grid:{ display:false } } },
+          onClick:function(e, el){ if(el && el.length){ ANA.agent=names[el[0].index]; drawAnalytics(); } } } });
+      const tpd=rows.map(function(a){ return a.working ? Math.round(a.trips/a.working*10)/10 : 0; });
+      const teamTpd=team.working ? Math.round((team.trips||0)/team.working*10)/10 : 0;
+      make('chProd', { type:'bar', data:{ labels:names, datasets:[
+          { label:'Trips per driver', data:tpd, backgroundColor:tpd.map(function(x){ return x>=teamTpd ? '#16a34a' : '#e08a12'; }), borderRadius:4 },
+          { type:'line', label:'Team', data:names.map(function(){ return teamTpd; }), borderColor:ink, borderDash:[4,4], pointRadius:0, indexAxis:'y' } ] },
+        options:{ indexAxis:'y', interaction:{ mode:'index', axis:'y', intersect:false }, scales:{ x:{ beginAtZero:true }, y:{ grid:{ display:false } } },
+          onClick:function(e, el){ if(el && el.length){ ANA.agent=names[el[0].index]; drawAnalytics(); } } } });
+    }
+    const cyc=anaPayRows(r);
+    if(cyc.length){
+      const keys=cyc.map(function(x){ return String(x.cycle).slice(0,10); }).filter(function(k,i,a){ return a.indexOf(k)===i; }).sort();
+      const people=cyc.map(function(x){ return x.agent; }).filter(function(k,i,a){ return a.indexOf(k)===i; });
+      const pal=['#6d4ce6','#0e9384','#3b6ee0','#e08a12','#d64545','#16a34a','#8b5cf6','#0891b2','#ca8a04','#db2777'];
+      make('chPay', { type:'bar', data:{ labels:keys.map(lbl), datasets:people.map(function(a,i){ return { label:a, backgroundColor:pal[i%pal.length], borderRadius:3, stack:'p',
+          data:keys.map(function(k){ const x=cyc.filter(function(y){ return y.agent===a && String(y.cycle).slice(0,10)===k; })[0]; return x ? Number(x.money)||0 : 0; }) }; }) },
+        options:{ scales:{ x:{ stacked:true, grid:{ display:false } }, y:{ stacked:true, beginAtZero:true, ticks:{ callback:function(t){ return 'EGP '+num(t); } } } },
+          plugins:{ tooltip:{ callbacks:{ footer:function(i){ return 'Total EGP '+num(i.reduce(function(s,x){ return s+(x.raw||0); },0)); } } } } } });
+    }
+  }, function(){
+    document.querySelectorAll('.an-cv').forEach(function(c){ c.innerHTML='<p class="dim" style="padding:30px 0;text-align:center">The charts could not load (no connection to cdnjs.cloudflare.com).</p>'; });
+  });
 }
 function anaCard(label, value, sub, delta, tip){
   return '<div class="dtile"'+(tip?' title="'+esc(tip)+'"':'')+'><div class="dl">'+label+'</div><div class="dv">'+value+(delta||'')+'</div><div class="ds">'+sub+'</div></div>';
@@ -3170,23 +3381,39 @@ function drawCallLists(){
     function(done){ run().withSuccessHandler(done).getKpi(SID, KPI_WHO); },
     function(k){
     if(!k || !k.ok){ b.innerHTML='<div class="empty">'+((k&&k.msg)||'Not available')+'</div>'; return; }
-    const lc={}; (BOOK||[]).forEach(function(d){ lc[d.p]=d.lc; });
+    const lc={}, bk={}; (BOOK||[]).forEach(function(d){ lc[d.p]=d.lc; bk[d.p]=d; });
     const today=todoKey(todoNow()).slice(0,10);
+    const q=String(window.CL_Q||'').trim().toLowerCase(), hide=window.CL_HIDE===undefined ? !isMgr() : !!window.CL_HIDE;
+    const calledToday=function(p){ return String(lc[p]||'').slice(0,10)===today; };
+    const T0=new Date(+today.slice(0,4), +today.slice(5,7)-1, +today.slice(8,10));
+    const ago=function(v){ const t=dt(v); if(!t) return ''; const n=Math.round((T0-new Date(t.getFullYear(),t.getMonth(),t.getDate()))/86400000);
+      return n<=0 ? 'today' : n===1 ? 'yesterday' : n+' days ago'; };
+    // the last call and the follow-up, from the book the page already holds
+    const lastOf=function(p){ const d=bk[p]; if(!d) return '';
+      const fu=dt(d.fu), t0=T0;
+      const due = fu ? (fu<t0 ? '<span class="late">follow-up was due '+ago(d.fu)+'</span>' : fu<new Date(t0.getTime()+86400000) ? '<span class="due">follow-up due today</span>' : 'follow-up '+dayName(String(d.fu).slice(0,10))) : '';
+      return (d.lc ? 'Last call <b>'+ago(d.lc)+'</b>'+(d.ls?' · '+esc(d.ls):'') : 'Never called')+(due?'<br>'+due:''); };
+    const keep=function(r){ if(hide && calledToday(r.phone)) return false;
+      return !q || String(r.name||'').toLowerCase().indexOf(q)>-1 || String(r.phone).indexOf(q)>-1; };
     const tagCls={ 'Window closing':'red', 'No trips yet':'red', 'First call':'red',
                    'Few trips':'amber', 'Follow up':'amber', 'In window':'blue', 'Activated':'green', 'Driving':'green' };
     const row=function(r, big, bigLbl, tag, sub){
-      const called = !isMgr() && String(lc[r.phone]||'').slice(0,10)===today;
-      return '<div class="cl-row" onclick="openDriver(\''+r.phone+'\')">'+
+      const called = calledToday(r.phone);
+      return '<div class="cl-row'+(called?' done':'')+'" onclick="openDriver(\''+r.phone+'\')">'+
         '<div class="cl-who"><b>'+esc(r.name||'Unnamed')+'</b>'+(called?' <span class="called" title="Called today">'+PHONE_SVG+'</span>':'')+
-          '<span>'+r.phone+(sub?' · '+sub:'')+'</span></div>'+
+          '<span>'+r.phone+(sub?' · '+sub:'')+'</span>'+
+          '<div class="cl-acts" onclick="event.stopPropagation()"><a href="tel:+'+r.phone+'">Call</a>'+
+            '<a class="wa" href="https://wa.me/'+r.phone+'" target="_blank" rel="noopener">WhatsApp</a></div></div>'+
         (tag ? '<span class="cl-tag '+(tagCls[tag]||'')+'">'+esc(tag)+'</span>' : '<span></span>')+
+        '<div class="cl-last">'+lastOf(r.phone)+'</div>'+
         '<div class="cl-num"><b>'+big+'</b><span>'+bigLbl+'</span></div>'+
       '</div>'; };
-    const sec=function(id, color, title, why, rows, draw, total){
-      const all = total!==undefined ? total : rows.length;
+    const sec=function(id, color, title, why, rows0, draw, total, worth){
+      const rows=rows0.filter(keep), all = total!==undefined ? total : rows0.length;
       return '<div class="cl-sec" id="'+id+'" style="--c:'+color+'">'+
-        '<div class="cl-head"><div><h4>'+title+' <em>'+num(all)+'</em></h4><p>'+why+
-          (all>rows.length ? ' Showing the '+num(rows.length)+' most urgent.' : '')+'</p></div></div>'+
+        '<div class="cl-head"><div><h4>'+title+' <em>'+num(all)+'</em>'+(worth?'<span class="cl-worth">'+worth+'</span>':'')+'</h4><p>'+why+
+          (all>rows0.length ? ' Showing the '+num(rows0.length)+' most urgent.' : '')+
+          (rows.length<rows0.length ? ' '+num(rows0.length-rows.length)+' hidden ('+(q?'search':'called today')+').' : '')+'</p></div></div>'+
         (rows.length ? '<div class="cl-list">'+rows.map(function(r,i){ const h=draw(r);
                          return i<6 ? h : h.replace('class="cl-row"','class="cl-row cl-more"'); }).join('')+
                          (rows.length>6 ? '<div class="cl-all" onclick="this.closest(\'.cl-sec\').classList.toggle(\'all\')">'+
@@ -3209,13 +3436,23 @@ function drawCallLists(){
       ['cl-react','#7c3aed','Churned drivers to bring back','KPI 4 — one trip back counts toward the book\'s '+num(k.kpis[3].goal||60)+'. Not back yet first.', k.reactivationAction||[],
         function(r){ return row(r, num(r.trips), 'trips this cycle', r.status, r.idle===null?'':'idle '+r.idle+(r.idle===1?' day':' days')); }, (k.actionTotals||{}).reactivation]
     ];
+    const worth=function(i, unit){ const g=(k.kpis||[])[i]||{}; if(!g.perWin) return g.toTarget===0 && g.pool ? 'target reached' : '';
+      return '+'+(Math.round(g.perWin*100)/100)+' pts per '+unit+(g.toTarget ? ' · '+num(g.toTarget)+' to the target' : ''); };
+    lists[0].push(worth(0,'onboarding')); lists[1].push(worth(1,'trip')); lists[2].push(worth(2,'trip')); lists[3].push(worth(3,'trip'));
+    const plan=[]; lists.forEach(function(l){ l[4].forEach(function(r){ if(plan.indexOf(r.phone)<0) plan.push(r.phone); }); });
+    const done=plan.filter(calledToday).length, pct=plan.length ? Math.round(done/plan.length*100) : 0;
     b.innerHTML =
       '<div class="panel"><div class="pfhead"><h4 style="margin:0">'+esc(k.agent)+' — who to call</h4>'+kpiPicker(k,'drawCallLists')+'</div>'+
+        '<div class="cl-plan"><div class="cl-prog"><div class="bar"><i style="width:'+pct+'%"></i></div>'+
+          '<p><b>'+num(done)+'</b> of the '+num(plan.length)+' drivers below called today'+(plan.length&&done>=plan.length?' — every one done':'')+'</p></div>'+
+          '<div class="cl-tools"><input type="search" placeholder="Find a name or number" value="'+esc(window.CL_Q||'')+'" '+
+            'oninput="window.CL_Q=this.value;clearTimeout(window.CL_T);window.CL_T=setTimeout(function(){drawCallLists();var i=document.querySelector(\'.cl-tools input\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250)">'+
+            '<span class="cl-tog'+(hide?' on':'')+'" onclick="window.CL_HIDE='+(hide?'false':'true')+';drawCallLists()">'+(hide?'✓ ':'')+'Hide called today</span></div></div>'+
         '<div class="cl-sum">'+lists.map(function(l){
           return '<div class="cl-chip" style="--c:'+l[1]+'" onclick="jumpTo(\''+l[0]+'\')"><b>'+num(l[6]!==undefined?l[6]:l[4].length)+'</b><span>'+l[2]+'</span></div>'; }).join('')+
           (top.length ? '<div class="cl-chip" style="--c:#0891b2" onclick="jumpTo(\'cl-top\')"><b>'+top.length+'</b><span>Drivers carrying the book</span></div>' : '')+
         '</div></div>'+
-      lists.map(function(l){ return sec(l[0], l[1], l[2], l[3], l[4], l[5], l[6]); }).join('')+
+      lists.map(function(l){ return sec(l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7]); }).join('')+
       (top.length ? sec('cl-top','#0891b2','Drivers carrying the book','Most trips in the last 7 days — worth a thank-you call to keep them.', top,
          function(r){ return row(r, num(r.lw), (r.lwd||7)>=7?'trips, last 7 days':'trips, last '+r.lwd+' days', '', num(r.total)+' trips in all'); }) : '')+
       ((k.onboardedList||[]).length ?
@@ -3481,7 +3718,9 @@ function drawTeam(){
         '</div>'+
         '<p class="dim" style="margin:0 0 12px">'+esc(r.from)+' → '+esc(r.to)+' · agents only, best first'+
           (r.final ? ' · the amounts to transfer for this cycle' : ' · click an agent for their full scorecard')+'</p>'+
+        (r.rows.length ? podium(r, fmtPts) : '')+
         (r.rows.length ?
+        '<h4 style="margin:4px 0 8px">Every KPI, agent by agent</h4>'+
         '<table><thead><tr><th style="width:44px">#</th><th>Agent</th><th class="num">Drivers</th>'+
           names.map(function(n){ return '<th class="num">'+n+'</th>'; }).join('')+
           '<th class="num">Points</th><th class="num">Incentive</th></tr></thead><tbody>'+
@@ -3505,6 +3744,27 @@ function drawTeam(){
   }).getScoreboard(SID, SB_CYCLE);
 }
 
+/* the podium (4 Nov): the first three on medals, the rest under them as a ranked list */
+function podium(r, fmtPts){
+  const open=function(x){ return r.final ? '' : ' onclick="KPI_WHO=\''+esc(x.agent).replace(/'/g,"\\'")+'\';go(\'kpi\')"'; };
+  const ini=function(n){ return esc(String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(function(w){ return w.charAt(0).toUpperCase(); }).join('')); };
+  const top=r.rows.slice(0,3), rest=r.rows.slice(3), best=Math.max(1, Number(r.rows[0].total)||0);
+  const card=function(x,i){
+    return '<div class="pd p'+(i+1)+'"'+open(x)+' title="'+esc(x.agent)+' · '+fmtPts(x.total)+' points · '+egp(x.money)+'">'+
+      '<div class="medal">'+ini(x.agent)+'<span class="no">#'+x.rank+'</span></div>'+
+      '<div class="who">'+esc(x.agent)+'</div>'+
+      '<div class="pts"><b>'+fmtPts(x.total)+'</b> points</div>'+
+      '<div class="egp">'+egp(x.money)+'</div>'+
+      '<div class="minis" title="The four KPIs: Lead, Activation, Productivity, Reactivation">'+(x.kpis||[]).map(function(k){
+        return '<i><b style="width:'+Math.min(100, Math.round((Number(k.points)||0)/(Number(k.max)||25)*100))+'%"></b></i>'; }).join('')+'</div>'+
+      '<div class="step">'+(i+1)+'</div></div>'; };
+  return '<div class="podium">'+top.map(card).join('')+'</div>'+
+    (rest.length ? '<div class="sb-rest">'+rest.map(function(x,i){
+      return '<div class="sb-r"'+open(x)+' style="animation-delay:'+(0.35+i*0.05)+'s"><span class="n">'+x.rank+'</span>'+
+        '<div><b>'+esc(x.agent)+'</b>'+(x.active?'':' <span class="dim">(switched off)</span>')+'<div class="dim" style="font-size:12px">'+fmtPts(x.total)+' points</div></div>'+
+        '<div class="bar"><i style="width:'+Math.round(Math.max(0,Number(x.total)||0)/best*100)+'%"></i></div>'+
+        '<span class="m">'+egp(x.money)+'</span></div>'; }).join('')+'</div>' : '');
+}
 function scoreExcel(){
   const r=SB_DATA; if(!r || !r.rows.length) return;
   const go=document.getElementById('sbXls'); go.disabled=true; go.textContent='Building…';
