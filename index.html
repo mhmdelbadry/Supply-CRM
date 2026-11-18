@@ -3096,7 +3096,7 @@ function drawKpi(){
         '<div class="kbar"><i data-w="'+Math.min(100, x.points/x.max*100)+'%"></i></div>'+
         // (2 Nov) what the leads are: the same New Lead count as the board
         (x.key==='lead' && x.parts && x.pool ? '<div class="kc2parts" title="Onboarded this cycle only — the board\'s Onboarding column also holds earlier cycles\' onboardings">'+num(x.parts.won)+' onboarded this cycle · '+num(x.parts.open)+' still New Lead'+
-          (x.parts.turnedDown?' · '+num(x.parts.turnedDown)+' turned down':'')+(x.parts.later?' · '+num(x.parts.later)+' onboarded after the cycle':'')+'</div>' : '')+
+          (x.parts.turnedDown?' · '+num(x.parts.turnedDown)+' turned down':'')+(x.parts.later?' · '+num(x.parts.later)+' onboarded after the cycle':'')+(x.parts.waiting&&x.kind!=='count'?' · '+num(x.parts.waiting)+' new, counted once onboarded':'')+'</div>' : '')+
         '<div class="kc2tip">'+(empty ? 'Counts once someone is in it' :
           hit ? (x.points>x.max ? '+'+(x.points-x.max).toFixed(1).replace(/\.0$/,'')+' above target' : 'Target met') :
                 num(x.toTarget)+' more '+KPI_UNIT[x.key]+' to the target')+'</div>'+
