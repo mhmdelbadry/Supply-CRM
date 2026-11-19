@@ -2597,19 +2597,16 @@ function drawDashboard(){
         // under the number only what changes how it reads; where it came from is on hover
         tt.querySelector('.ds').textContent = none ? 'Not recorded for these days' : !T.covered ? 'Counted from '+dayName(T.since)
           : R.key==='today' ? 'Finished today, so far' : 'Trips the drivers finished';
-        // (19 Nov, Mohamed) the total split as Superset splits it: Standard = our drivers in the CRM,
-        // Bike = the captains in the trips report who are not in the CRM (the drivers file keeps Standard cars only)
-        // with ride_service_type in the reports, Bike is exactly Superset's Bike; without it, the captains not in the CRM
-        if(!none && !who && T.typed)
-          tt.querySelector('.ds').innerHTML='Standard <b>'+num(T.n-(T.bike||0))+'</b> · Bike <b>'+num(T.bike||0)+'</b>';
-        else if(!none && !who && T.notInCrm>0)
-          tt.querySelector('.ds').innerHTML='Standard <b>'+num(T.n-T.notInCrm)+'</b> · Bike <b>'+num(T.notInCrm)+'</b>';
         tt.title = T.source==='mixed' ? 'The trips report to '+dayName(T.reportTo)+', then the CRM\'s own count'
           : T.source==='superset' ? 'From the trips report'
           : none ? 'Daily trips start '+(T.since?dayName(T.since):'after the first night')
           : !T.covered ? 'Daily trips start '+dayName(T.since)
           : R.key==='today' ? 'Since this morning, as of the last sync'
           : T.isCycle ? 'Since '+dayName(R.from)+' (the KPI count)' : '';
+        // (19 Nov, Mohamed) Standard only: the CRM's own drivers; trips by captains not in the CRM are left out (on hover)
+        if(!none && !who && (T.notInCrm>0 || T.bike>0)){
+          tt.querySelector('.ds').textContent='Standard — drivers in the CRM';
+          tt.title=(tt.title?tt.title+' · ':'')+num((T.notInCrm||0)+(T.bike||0))+' trips by captains not in the CRM (Bike, or missing from the drivers file) left out'; }
       }
     }).getDashStats(SID, who, DRANGE);
     if(!(isMgr() && !who)) drawAgentWork(who || ME.name, true);     // their calls this cycle, folded
