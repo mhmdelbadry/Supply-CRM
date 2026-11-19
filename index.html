@@ -4277,6 +4277,7 @@ function runReport(apply){
       (r.agents.length?'<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers who drove</th><th class="num">Trips</th></tr></thead><tbody>'+
         r.agents.map(function(a){ return '<tr><td><b>'+esc(a.agent||'Not assigned')+'</b></td><td class="num">'+num(a.drivers)+'</td><td class="num"><b>'+num(a.trips)+'</b></td></tr>'; }).join('')+
         '</tbody></table></div>':'')+
+      '<p class="dim" style="margin-top:10px;font-size:12px">Page 19 Nov c · server '+esc(r.version||'older than 19 Nov c — upload supabase-server.ts again')+' · ride_service_type '+(r.typed?'found':'not in what the page sent')+'</p>'+
       (r.typed?'<p class="dim" style="margin-top:10px">Bike: '+num(r.bikeTrips)+' trips by '+num(r.bike)+' captains, kept apart (for no agent).</p>':'')+
       (r.repeatedLines?'<p class="dim" style="margin-top:10px">'+num(r.repeatedLines)+' captains are on more than one line of the file: their lines are added up.</p>':'')+
       (r.tooMany?'<div class="smsg bad" style="margin-top:10px">'+num(r.tooMany)+' drivers have more than 60 trips a day in these days — is this the right report? (The drivers file holds all-time trips.)</div>':'')+
