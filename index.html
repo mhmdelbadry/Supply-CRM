@@ -2604,9 +2604,14 @@ function drawDashboard(){
           : R.key==='today' ? 'Since this morning, as of the last sync'
           : T.isCycle ? 'Since '+dayName(R.from)+' (the KPI count)' : '';
         // (19 Nov, Mohamed) Standard only: the CRM's own drivers; trips by captains not in the CRM are left out (on hover)
+        // (19 Nov, Mohamed) the whole team: the total with Bike, split under it; Standard is the CRM's own drivers.
+        // Bike = the report's captains not in the CRM (the drivers file brings Standard cars in Alexandria only),
+        // or the report's own ride_service_type when it has one. Never in an agent's numbers.
         if(!none && !who && (T.notInCrm>0 || T.bike>0)){
-          tt.querySelector('.ds').textContent='Standard — drivers in the CRM';
-          tt.title=(tt.title?tt.title+' · ':'')+num((T.notInCrm||0)+(T.bike||0))+' trips by captains not in the CRM (Bike, or missing from the drivers file) left out'; }
+          const bk=T.typed ? (T.bike||0) : (T.notInCrm||0)+(T.bike||0), other=T.typed ? (T.notInCrm||0) : 0;
+          tt.querySelector('.dv').innerHTML=num(T.n+bk+other);
+          tt.querySelector('.ds').textContent='Standard '+num(T.n)+' · Bike '+num(bk)+(other?' · not in the CRM '+num(other):'');
+          tt.title=(tt.title?tt.title+' · ':'')+'Standard = drivers in the CRM. Bike = captains in the trips report who are not in the CRM'+(T.typed?' (the report\'s ride_service_type)':'')+' — never in an agent\'s numbers'; }
       }
     }).getDashStats(SID, who, DRANGE);
     if(!(isMgr() && !who)) drawAgentWork(who || ME.name, true);     // their calls this cycle, folded
@@ -4047,7 +4052,9 @@ function tripsColumns(head){
   if(n<0) n=h.findIndex(function(x){ return /(rides|trips)/.test(x); });
   // (19 Nov) Superset's ride_service_type ("ZEDS Standard" / "Bike"), when the report has it
   const sv=h.findIndex(function(x){ return /(service|vehicle)/.test(x) && !/completed|rides|trips/.test(x); });
-  return { id:id, n:n, sv:sv };
+  // (19 Nov, Mohamed) a report of many days with a day on each line: each day goes in as its own upload
+  const dt=h.findIndex(function(x){ return /(date|day)/.test(x) && !/completed|rides|trips|service/.test(x); });
+  return { id:id, n:n, sv:sv, dt:dt };
 }
 function tripsFrom(table){
   for(let i=0;i<Math.min(table.length,10);i++){
@@ -4061,13 +4068,35 @@ function tripsFrom(table){
           body.slice(0,200).forEach(function(r){ if(/^\s*(zeds\s*)?(standard|bike|motorcycle)\s*$/i.test(String(r[j]==null?'':r[j]))) h++; });
           if(h>hits){ hits=h; best=j; } }
         if(hits) c.sv=best; }
-      let last='';
-      return body.map(function(r){ const x=[String(r[c.id]==null?'':r[c.id]).trim(), Number(String(r[c.n]==null?'':r[c.n]).replace(/,/g,''))];
-        // a pivot export leaves the service blank under the first captain of each group: it carries down
-        if(c.sv>-1){ const v=String(r[c.sv]==null?'':r[c.sv]).trim(); if(v) last=v; x.push(v||last); } return x; })
-      .filter(function(r){ return r[0] && isFinite(r[1]); }); }
+      // the day column under another name: the one whose cells are dates
+      if(c.dt<0){ const w=(table[i]||[]).length;
+        for(let j=0;j<w && c.dt<0;j++){ if(j===c.id||j===c.n||j===c.sv) continue; let h=0;
+          body.slice(0,200).forEach(function(r){ if(tripDay(r[j])) h++; });
+          if(h && h>=Math.min(body.length,200)*0.5) c.dt=j; } }
+      let last='', lastDay='';
+      const out=body.map(function(r){ const x=[String(r[c.id]==null?'':r[c.id]).trim(), Number(String(r[c.n]==null?'':r[c.n]).replace(/,/g,''))];
+        // a pivot export leaves the service (and the day) blank under the first captain of each group: it carries down
+        if(c.sv>-1){ const v=String(r[c.sv]==null?'':r[c.sv]).trim(); if(v) last=v; x.push(v||last); }
+        if(c.dt>-1){ const d=tripDay(r[c.dt]); if(d) lastDay=d; x.day=d||lastDay; }
+        return x; })
+      .filter(function(r){ return r[0] && isFinite(r[1]); });
+      tripsFrom.days=null;
+      if(c.dt>-1){ const days={}; let bad=0;
+        out.forEach(function(r){ if(!r.day){ bad++; return; } (days[r.day]=days[r.day]||[]).push(r.slice()); });
+        tripsFrom.days=days; tripsFrom.noDay=bad; }
+      return out; }
   }
   return null;
+}
+/* a day from a report cell: an Excel date, 2026-11-18, 18/11/2026 or 18-11-2026 (day first, as in Egypt) */
+function tripDay(v){
+  if(v==null || v==='') return '';
+  if(v instanceof Date && !isNaN(v)) return v.getUTCFullYear()+'-'+String(v.getUTCMonth()+1).padStart(2,'0')+'-'+String(v.getUTCDate()).padStart(2,'0');
+  const t=String(v).trim(); let m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return '';
 }
 function csvTable(text){
   const rows=[]; let row=[], f='', q=false;
@@ -4171,7 +4200,7 @@ function runStart(apply){
 /* ---------- Sync → Trips report (3 Nov) ----------
    Superset's completed trips per captain, counted up to the end of the day picked. The CRM keeps each
    driver's count from the upload before; the difference is the trips of the days between. */
-let TR_ROWS=null, TR_KIND='range';
+let TR_ROWS=null, TR_KIND='range', TR_DAYS=null;
 function trKindHelp(){
   return TR_KIND==='range'
     ? 'Each number is the driver\'s trips <b>from the first day to the last</b> (both included) — kept as it is. Upload a day at a time (From = To) and any range you pick later adds up exactly. Days can be uploaded in any order; the same days again replace them.'
@@ -4245,17 +4274,47 @@ function trDelete(asOf){
 function pickReport(f){
   if(!f) return;
   readTripFile(f, document.getElementById('trMsg'), function(rows){
-    TR_ROWS=rows;
+    TR_ROWS=rows; TR_DAYS=null;
     document.getElementById('trTitle').textContent=f.name;
+    const ds=tripsFrom.days ? Object.keys(tripsFrom.days).sort() : [];
+    if(ds.length){ TR_DAYS=tripsFrom.days; if(TR_KIND!=='range') trKind('range');
+      document.getElementById('trFrom').value=ds[0]; document.getElementById('trAsOf').value=ds[ds.length-1]; }
     const bk=rows.filter(function(r){ return r.length>2 && /bike|motor|scooter/i.test(r[2]); });
     document.getElementById('trSub').textContent=num(rows.length)+' lines · '+num(rows.reduce(function(s,r){ return s+r[1]; },0))+' completed trips in the file'+
       (rows.some(function(r){ return r.length>2 && r[2]; }) ? ' · Bike '+num(bk.reduce(function(s,r){ return s+r[1]; },0))+', Standard '+num(rows.reduce(function(s,r){ return s+r[1]; },0)-bk.reduce(function(s,r){ return s+r[1]; },0))
-       : ' · no ride_service_type column: Bike cannot be told apart');
+       : ' · no ride_service_type column: Bike cannot be told apart')+
+      (ds.length ? ' · a day on each line: '+ds.length+' days, '+dayName(ds[0])+' to '+dayName(ds[ds.length-1])+', each uploaded as its own day (an upload already in for that day is replaced)'+(tripsFrom.noDay?' · '+num(tripsFrom.noDay)+' lines with no day left out':'') : '');
     document.getElementById('trPrev').disabled=false; document.getElementById('trGo').disabled=true;
   });
 }
+/* (19 Nov, Mohamed) a report with a day on each line: one upload per day, in order, each the same as
+   uploading that day alone (it replaces that day's upload; agents' numbers never go down) */
+function runReportDays(apply){
+  const days=Object.keys(TR_DAYS).sort(), out=document.getElementById('trOut');
+  if(apply && !confirm('Upload '+days.length+' days, '+dayName(days[0])+' to '+dayName(days[days.length-1])+', each as its own day? An upload already in for one of these days is replaced.')) return;
+  const res=[]; let i=0;
+  const draw=function(done){
+    const ok=res.filter(function(r){ return r.ok; }), tot=function(k){ return ok.reduce(function(s,r){ return s+(Number(r[k])||0); },0); };
+    out.innerHTML='<h4 style="margin:18px 0 6px">'+(done?(apply?'Uploaded':'What this upload adds'):(apply?'Uploading… ':'Working it out… ')+res.length+' of '+days.length)+'</h4>'+
+      '<p class="dim">CRM drivers '+num(tot('newTrips'))+' trips · not in the CRM (Bike, or missing from the drivers file) '+num(tot('notInCrmTrips')+tot('bikeTrips'))+' · in the file '+num(tot('fileTotal'))+'</p>'+
+      '<div style="overflow-x:auto"><table><thead><tr><th>Day</th><th class="num">In the file</th><th class="num">CRM drivers</th><th class="num">Not in the CRM</th><th></th></tr></thead><tbody>'+
+      res.map(function(r){ return '<tr><td><b>'+esc(dayName(r.day))+'</b></td>'+(r.ok
+        ? '<td class="num">'+num(r.fileTotal)+'</td><td class="num"><b>'+num(r.newTrips)+'</b></td><td class="num">'+num((r.notInCrmTrips||0)+(r.bikeTrips||0))+'</td><td class="dim">'+(r.replacing?'replaces the upload in':'new')+'</td>'
+        : '<td colspan="4" class="smsg bad">'+esc(r.msg||'No answer')+'</td>')+'</tr>'; }).join('')+'</tbody></table></div>'+
+      (done && ok.length ? '<p class="dim" style="margin-top:10px;font-size:12px">server '+esc(ok[0].version||'')+'</p>' : '');
+    if(done){ document.getElementById('trGo').disabled=!!apply; if(apply && ok.length) trHistory(ok[ok.length-1].history); }
+  };
+  const next=function(){
+    if(i>=days.length){ draw(true); return; }
+    const d=days[i++];
+    run().withSuccessHandler(function(r){ r=r||{ok:false}; r.day=d; res.push(r); draw(false); next(); })
+      .uploadTripCounts(SID, { asOf: d, from: d, rows: TR_DAYS[d], apply: !!apply });
+  };
+  draw(false); next();
+}
 function runReport(apply){
   if(!TR_ROWS) return;
+  if(TR_DAYS && Object.keys(TR_DAYS).length) return runReportDays(apply);
   const asOf=document.getElementById('trAsOf').value, out=document.getElementById('trOut');
   const from=TR_KIND==='range' ? document.getElementById('trFrom').value : '';
   if(apply && !confirm(from ? 'Upload this report as the trips from '+dayName(from)+' to '+dayName(asOf)+'?' : 'Upload this report as counting up to the end of '+dayName(asOf)+'?')) return;
@@ -4274,7 +4333,7 @@ function runReport(apply){
       (r.agents.length?'<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers who drove</th><th class="num">Trips</th></tr></thead><tbody>'+
         r.agents.map(function(a){ return '<tr><td><b>'+esc(a.agent||'Not assigned')+'</b></td><td class="num">'+num(a.drivers)+'</td><td class="num"><b>'+num(a.trips)+'</b></td></tr>'; }).join('')+
         '</tbody></table></div>':'')+
-      '<p class="dim" style="margin-top:10px;font-size:12px">Page 19 Nov c · server '+esc(r.version||'older than 19 Nov c — upload supabase-server.ts again')+' · ride_service_type '+(r.typed?'found':'not in what the page sent')+'</p>'+
+      '<p class="dim" style="margin-top:10px;font-size:12px">Page 19 Nov d · server '+esc(r.version||'older than 19 Nov c — upload supabase-server.ts again')+' · ride_service_type '+(r.typed?'found':'not in what the page sent')+'</p>'+
       (r.typed?'<p class="dim" style="margin-top:10px">Bike: '+num(r.bikeTrips)+' trips by '+num(r.bike)+' captains, kept apart (for no agent).</p>':'')+
       (r.repeatedLines?'<p class="dim" style="margin-top:10px">'+num(r.repeatedLines)+' captains are on more than one line of the file: their lines are added up.</p>':'')+
       (r.tooMany?'<div class="smsg bad" style="margin-top:10px">'+num(r.tooMany)+' drivers have more than 60 trips a day in these days — is this the right report? (The drivers file holds all-time trips.)</div>':'')+
