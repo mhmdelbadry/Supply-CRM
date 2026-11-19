@@ -4650,10 +4650,39 @@ function paintConfig(){
       '<button class="btn" style="background:var(--good,#15803d)" onclick="cfSave()">Save from '+(CF_FROM==='next'?'the next cycle':'this cycle')+'</button>'+
       '<span class="dim" style="font-size:12.5px">Defaults: <span class="lnk" onclick="cfDefaults()">put the original numbers back in the form</span></span></div>'+
     '<div id="cfPrev" class="cf-prev"></div></div>'+
+    // (19 Nov) points never go below the cycle's best; the owner can put back a total seen before a drop
+    (ME.role==='owner' ? '<div class="panel"><h4>Put back an agent\'s points this cycle</h4>'+
+      '<p class="dim" style="margin:4px 0 10px">Points never go below the best an agent reached this cycle. If an agent had more before this was in place, enter it here: the board shows at least that from now on.</p>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="flAgent">'+(ME.agentNames||[]).map(function(a){ return '<option>'+esc(a)+'</option>'; }).join('')+'</select>'+
+      '<div class="cf-in"><input id="flPts" inputmode="decimal" placeholder="e.g. 85.5"><span>pts</span></div>'+
+      '<button class="btn" onclick="cfFloor()">Put back</button></div>'+
+      '<p class="dim" style="margin:14px 0 8px">Or work it out from the data: KPI 1 (a share of leads, the one that fell as leads were added) as it stood at the end of each day of this cycle, its best day kept.</p>'+
+      '<button class="btn" onclick="cfRebuild(false)">Work out each agent\'s best this cycle</button><div id="cfRb"></div></div>' : '')+
     '<div class="panel"><h4>Changes made</h4><div class="cf-log">'+((CF.log||[]).length ? CF.log.map(function(l){
       return '<div><b>'+esc(l.by)+'</b> <span class="dim">· '+esc(l.at)+' · from the cycle of '+esc(dayName(l.from))+'</span><br>'+l.changes.map(esc).join('<br>')+'</div>'; }).join('')
       : '<span class="dim">None yet — the numbers are the original ones.</span>')+'</div></div>';
   cfSum();
+}
+function cfFloor(){
+  const a=document.getElementById('flAgent').value, n=Number(document.getElementById('flPts').value);
+  if(!a || !isFinite(n) || n<=0){ notice('Pick an agent and enter the points'); return; }
+  run().withSuccessHandler(function(r){
+    if(!r || !r.ok){ notice((r&&r.msg)||'Not saved'); return; }
+    toast(r.unchanged ? a+' already has '+r.total+' points or more' : a+' now shows at least '+r.total+' points this cycle');
+    MEMO={};
+  }).kpiSetFloor(SID, a, n);
+}
+function cfRebuild(apply){
+  const el=document.getElementById('cfRb'); el.innerHTML='<p class="dim">Working it out day by day…</p>';
+  run().withSuccessHandler(function(r){
+    if(!r || !r.ok){ el.innerHTML='<div class="note">'+esc((r&&r.msg)||'No answer')+'</div>'; return; }
+    el.innerHTML='<div style="overflow-x:auto;margin-top:10px"><table><thead><tr><th>Agent</th><th class="num">Points now</th><th class="num">KPI 1 now</th><th class="num">KPI 1 best</th><th>Best day</th><th class="num">Points kept</th><th class="num">Incentive</th></tr></thead><tbody>'+
+      r.rows.map(function(x){ return '<tr><td><b>'+esc(x.agent)+'</b></td><td class="num">'+x.now+'</td><td class="num">'+x.lead.now+'</td><td class="num">'+x.lead.best+
+        (x.lead.pool?' <span class="dim">('+x.lead.won+' of '+x.lead.pool+')</span>':'')+'</td><td>'+esc(x.lead.day||'—')+'</td><td class="num '+(x.result>x.now?'up':'')+'"><b>'+x.result+'</b></td><td class="num">'+money(x.money)+'</td></tr>'; }).join('')+
+      '</tbody></table></div>'+(r.applied ? '<p style="color:var(--good,#15803d)"><b>Kept.</b> Every agent shows at least these points this cycle.</p>'
+        : '<div style="margin-top:8px"><button class="btn" style="background:var(--good,#15803d)" onclick="cfRebuild(true)">Keep these</button></div>');
+    if(r.applied) MEMO={};
+  }).kpiRebuildPeaks(SID, !!apply);
 }
 function cfDefaults(){ CF_VALS=JSON.parse(JSON.stringify(CF.defaults)); paintConfig(); }
 function cfPreview(){
