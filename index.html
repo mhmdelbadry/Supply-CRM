@@ -2597,6 +2597,10 @@ function drawDashboard(){
         // under the number only what changes how it reads; where it came from is on hover
         tt.querySelector('.ds').textContent = none ? 'Not recorded for these days' : !T.covered ? 'Counted from '+dayName(T.since)
           : R.key==='today' ? 'Finished today, so far' : 'Trips the drivers finished';
+        // (19 Nov, Mohamed) the total split as Superset splits it: Standard = our drivers in the CRM,
+        // Bike = the captains in the trips report who are not in the CRM (the drivers file keeps Standard cars only)
+        if(!none && !who && T.notInCrm>0)
+          tt.querySelector('.ds').innerHTML='Standard <b>'+num(T.n-T.notInCrm)+'</b> · Bike <b>'+num(T.notInCrm)+'</b>';
         tt.title = T.source==='mixed' ? 'The trips report to '+dayName(T.reportTo)+', then the CRM\'s own count'
           : T.source==='superset' ? 'From the trips report'
           : none ? 'Daily trips start '+(T.since?dayName(T.since):'after the first night')
