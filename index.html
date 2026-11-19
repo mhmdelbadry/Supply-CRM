@@ -2599,7 +2599,10 @@ function drawDashboard(){
           : R.key==='today' ? 'Finished today, so far' : 'Trips the drivers finished';
         // (19 Nov, Mohamed) the total split as Superset splits it: Standard = our drivers in the CRM,
         // Bike = the captains in the trips report who are not in the CRM (the drivers file keeps Standard cars only)
-        if(!none && !who && T.notInCrm>0)
+        // with ride_service_type in the reports, Bike is exactly Superset's Bike; without it, the captains not in the CRM
+        if(!none && !who && T.typed)
+          tt.querySelector('.ds').innerHTML='Standard <b>'+num(T.n-(T.bike||0))+'</b> · Bike <b>'+num(T.bike||0)+'</b>';
+        else if(!none && !who && T.notInCrm>0)
           tt.querySelector('.ds').innerHTML='Standard <b>'+num(T.n-T.notInCrm)+'</b> · Bike <b>'+num(T.notInCrm)+'</b>';
         tt.title = T.source==='mixed' ? 'The trips report to '+dayName(T.reportTo)+', then the CRM\'s own count'
           : T.source==='superset' ? 'From the trips report'
@@ -4045,13 +4048,16 @@ function tripsColumns(head){
   const id=h.findIndex(function(x){ return /^(captain_?id|captain id|driver_?id|platform_?id|id)$/.test(x); });
   let n=h.findIndex(function(x){ return /completed/.test(x); });
   if(n<0) n=h.findIndex(function(x){ return /(rides|trips)/.test(x); });
-  return { id:id, n:n };
+  // (19 Nov) Superset's ride_service_type ("ZEDS Standard" / "Bike"), when the report has it
+  const sv=h.findIndex(function(x){ return /(service|vehicle)/.test(x) && !/completed|rides|trips/.test(x); });
+  return { id:id, n:n, sv:sv };
 }
 function tripsFrom(table){
   for(let i=0;i<Math.min(table.length,10);i++){
     if(fileKind(table[i]||[])==='drivers'){ tripsFrom.wrong='drivers'; return null; }
     const c=tripsColumns(table[i]||[]);
-    if(c.id>-1 && c.n>-1) return table.slice(i+1).map(function(r){ return [String(r[c.id]==null?'':r[c.id]).trim(), Number(r[c.n])]; })
+    if(c.id>-1 && c.n>-1) return table.slice(i+1).map(function(r){ const x=[String(r[c.id]==null?'':r[c.id]).trim(), Number(r[c.n])];
+        if(c.sv>-1) x.push(String(r[c.sv]==null?'':r[c.sv]).trim()); return x; })
       .filter(function(r){ return r[0] && isFinite(r[1]); });
   }
   return null;
@@ -4201,7 +4207,7 @@ function drawTripReport(){
       '<label class="dim" for="trAsOf" id="trToLbl">'+(TR_KIND==='range'?'To':'Up to the end of')+'</label>'+
       '<input type="date" id="trAsOf" value="'+y+'" max="'+ymdLocal(today0())+'"></div>'+
     '<label class="sdrop" id="trDrop"><input type="file" id="trFile" accept=".xlsx,.csv" hidden onchange="pickReport(this.files[0])">'+
-      '<b id="trTitle">Drop the Superset report here (Excel or CSV)</b><span id="trSub">captain_id and the number of completed rides</span></label>'+
+      '<b id="trTitle">Drop the Superset report here (Excel or CSV)</b><span id="trSub">captain_id, the number of completed rides, and ride_service_type (to tell Bike from Standard)</span></label>'+
     '<div id="trMsg" class="smsg"></div>'+
     '<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px"><button class="btn" id="trPrev" disabled onclick="runReport(false)">Preview</button>'+
       '<button class="btn" id="trGo" disabled style="background:var(--good,#15803d)" onclick="runReport(true)">Upload</button></div>'+
@@ -4258,6 +4264,7 @@ function runReport(apply){
       (r.agents.length?'<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers who drove</th><th class="num">Trips</th></tr></thead><tbody>'+
         r.agents.map(function(a){ return '<tr><td><b>'+esc(a.agent||'Not assigned')+'</b></td><td class="num">'+num(a.drivers)+'</td><td class="num"><b>'+num(a.trips)+'</b></td></tr>'; }).join('')+
         '</tbody></table></div>':'')+
+      (r.typed?'<p class="dim" style="margin-top:10px">Bike: '+num(r.bikeTrips)+' trips by '+num(r.bike)+' captains, kept apart (for no agent).</p>':'')+
       (r.repeatedLines?'<p class="dim" style="margin-top:10px">'+num(r.repeatedLines)+' captains are on more than one line of the file: their lines are added up.</p>':'')+
       (r.tooMany?'<div class="smsg bad" style="margin-top:10px">'+num(r.tooMany)+' drivers have more than 60 trips a day in these days — is this the right report? (The drivers file holds all-time trips.)</div>':'')+
       (r.lowerList.length?'<p class="dim" style="margin-top:10px">Lower than before: '+r.lowerList.slice(0,8).map(function(x){ return esc(x.name)+' '+num(x.before)+' → '+num(x.now); }).join(' · ')+'</p>':'');
