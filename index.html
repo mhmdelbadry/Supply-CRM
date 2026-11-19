@@ -4254,6 +4254,7 @@ function runReport(apply){
       (r.agents.length?'<div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="num">Drivers who drove</th><th class="num">Trips</th></tr></thead><tbody>'+
         r.agents.map(function(a){ return '<tr><td><b>'+esc(a.agent||'Not assigned')+'</b></td><td class="num">'+num(a.drivers)+'</td><td class="num"><b>'+num(a.trips)+'</b></td></tr>'; }).join('')+
         '</tbody></table></div>':'')+
+      (r.repeatedLines?'<p class="dim" style="margin-top:10px">'+num(r.repeatedLines)+' captains are on more than one line of the file: their lines are added up.</p>':'')+
       (r.tooMany?'<div class="smsg bad" style="margin-top:10px">'+num(r.tooMany)+' drivers have more than 60 trips a day in these days — is this the right report? (The drivers file holds all-time trips.)</div>':'')+
       (r.lowerList.length?'<p class="dim" style="margin-top:10px">Lower than before: '+r.lowerList.slice(0,8).map(function(x){ return esc(x.name)+' '+num(x.before)+' → '+num(x.now); }).join(' · ')+'</p>':'');
     if(r.applied) trHistory(r.history);
