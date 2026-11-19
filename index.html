@@ -4056,9 +4056,19 @@ function tripsFrom(table){
   for(let i=0;i<Math.min(table.length,10);i++){
     if(fileKind(table[i]||[])==='drivers'){ tripsFrom.wrong='drivers'; return null; }
     const c=tripsColumns(table[i]||[]);
-    if(c.id>-1 && c.n>-1) return table.slice(i+1).map(function(r){ const x=[String(r[c.id]==null?'':r[c.id]).trim(), Number(r[c.n])];
-        if(c.sv>-1) x.push(String(r[c.sv]==null?'':r[c.sv]).trim()); return x; })
-      .filter(function(r){ return r[0] && isFinite(r[1]); });
+    if(c.id>-1 && c.n>-1){
+      const body=table.slice(i+1);
+      // (19 Nov) the service column under another name: the one whose cells read "ZEDS Standard" / "Bike"
+      if(c.sv<0){ const w=(table[i]||[]).length; let best=-1, hits=0;
+        for(let j=0;j<w;j++){ if(j===c.id||j===c.n) continue; let h=0;
+          body.slice(0,200).forEach(function(r){ if(/^\s*(zeds\s*)?(standard|bike|motorcycle)\s*$/i.test(String(r[j]==null?'':r[j]))) h++; });
+          if(h>hits){ hits=h; best=j; } }
+        if(hits) c.sv=best; }
+      let last='';
+      return body.map(function(r){ const x=[String(r[c.id]==null?'':r[c.id]).trim(), Number(String(r[c.n]==null?'':r[c.n]).replace(/,/g,''))];
+        // a pivot export leaves the service blank under the first captain of each group: it carries down
+        if(c.sv>-1){ const v=String(r[c.sv]==null?'':r[c.sv]).trim(); if(v) last=v; x.push(v||last); } return x; })
+      .filter(function(r){ return r[0] && isFinite(r[1]); }); }
   }
   return null;
 }
@@ -4240,7 +4250,10 @@ function pickReport(f){
   readTripFile(f, document.getElementById('trMsg'), function(rows){
     TR_ROWS=rows;
     document.getElementById('trTitle').textContent=f.name;
-    document.getElementById('trSub').textContent=num(rows.length)+' captains · '+num(rows.reduce(function(s,r){ return s+r[1]; },0))+' completed trips in the file';
+    const bk=rows.filter(function(r){ return r.length>2 && /bike|motor|scooter/i.test(r[2]); });
+    document.getElementById('trSub').textContent=num(rows.length)+' lines · '+num(rows.reduce(function(s,r){ return s+r[1]; },0))+' completed trips in the file'+
+      (rows.some(function(r){ return r.length>2 && r[2]; }) ? ' · Bike '+num(bk.reduce(function(s,r){ return s+r[1]; },0))+', Standard '+num(rows.reduce(function(s,r){ return s+r[1]; },0)-bk.reduce(function(s,r){ return s+r[1]; },0))
+       : ' · no ride_service_type column: Bike cannot be told apart');
     document.getElementById('trPrev').disabled=false; document.getElementById('trGo').disabled=true;
   });
 }
