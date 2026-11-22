@@ -209,6 +209,8 @@
   .cl-sum{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
   .cl-chip{flex:1;min-width:150px;cursor:pointer;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:10px 12px;background:var(--card);}
   .cl-chip:hover{background:var(--line2,#f4f5f8);} .cl-chip b{display:block;font-size:22px;color:var(--c);} .cl-chip span{font-size:12.5px;color:var(--dim);}
+  .cl-chip.on{background:var(--c);border-color:var(--c);} .cl-chip.on b,.cl-chip.on span{color:#fff;}
+  @media(max-width:700px){ .cl-sum{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;} .cl-chip{flex:0 0 auto;min-width:128px;} }
   .cl-sec{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;margin-bottom:16px;scroll-margin-top:12px;}
   .cl-head{padding:14px 18px 8px;} .cl-head h4{margin:0;font-size:15px;} .cl-head h4 em{font-style:normal;background:var(--c);color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:6px;}
   .cl-head p{margin:4px 0 0;font-size:12.5px;color:var(--dim);}
@@ -3498,6 +3500,17 @@ function drawCallLists(){
         .sort(function(a,b){ return b.lw-a.lw; }).slice(0,8)
         .map(function(d){ return { phone:d.p, name:d.n, lw:d.lw, lwd:d.lwd, total:d.r }; });
     })();
+    // (22 Nov, Mohamed) two lists that are not a KPI: the drivers whose last call was not picked up, and
+    // the ones not reached — every call that did not reach him (No Answer, Switched Off, Busy, Wrong
+    // Number, Couldn't reach him) counts, an answered call starts it again from 0
+    const scope = !BOOK ? [] : KPI_WHO ? BOOK.filter(function(d){ return d.o===KPI_WHO; }) : (isMgr()?BOOK:BOOK.filter(function(d){ return d.o===ME.name; }));
+    const live = function(d){ return String(d.s||'').indexOf('Rejected')!==0; };
+    const asRow = function(d){ return { phone:d.p, name:d.n, nr:d.nr||0, ls:d.ls||'', lc:d.lc||'', stage:d.s||'', who:d.o||'' }; };
+    const subOf = function(r){ return esc(r.stage)+(isMgr()&&!KPI_WHO&&r.who?' · '+esc(r.who):''); };
+    const noAns = scope.filter(function(d){ return live(d) && d.ls==='No Answer'; }).map(asRow)
+      .sort(function(a,b){ return String(a.lc).localeCompare(String(b.lc)) || b.nr-a.nr; });        // tried longest ago first
+    const notReachedList = scope.filter(function(d){ return live(d) && notReached(d); }).map(asRow)
+      .sort(function(a,b){ return b.nr-a.nr || String(a.lc).localeCompare(String(b.lc)); });      // most calls not reached first
     const lists=[
       ['cl-leads','#2563eb','New leads to call','KPI 1 — nobody has moved these into onboarding yet. Longest waiting first.', k.leadAction||[],
         function(r){ return row(r, r.age===null?'—':num(r.age), 'days waiting', r.action, 'lead since '+r.since); }, (k.actionTotals||{}).lead],
@@ -3511,7 +3524,17 @@ function drawCallLists(){
     const worth=function(i, unit){ const g=(k.kpis||[])[i]||{}; if(!g.perWin) return g.toTarget===0 && g.pool ? 'target reached' : '';
       return '+'+(Math.round(g.perWin*100)/100)+' pts per '+unit+(g.toTarget ? ' · '+num(g.toTarget)+' to the target' : ''); };
     lists[0].push(worth(0,'onboarding')); lists[1].push(worth(1,'trip')); lists[2].push(worth(2,'trip')); lists[3].push(worth(3,'trip'));
-    const plan=[]; lists.forEach(function(l){ l[4].forEach(function(r){ if(plan.indexOf(r.phone)<0) plan.push(r.phone); }); });
+    if(top.length) lists.push(['cl-top','#0891b2','Drivers carrying the book','Most trips in the last 7 days — worth a thank-you call to keep them.', top,
+         function(r){ return row(r, num(r.lw), (r.lwd||7)>=7?'trips, last 7 days':'trips, last '+r.lwd+' days', '', num(r.total)+' trips in all'); }]);
+    lists.push(['cl-noans','#dc2626','No answer','Drivers whose last call was not picked up. Tried longest ago first — try another time of day or WhatsApp.', noAns,
+         function(r){ return row(r, num(r.nr), r.nr===1?'call not reached':'calls not reached in a row', 'No answer', subOf(r)); }]);
+    lists.push(['cl-notreached','#9f1239','Not reached','More than '+notReachedAfter()+' calls in a row that did not reach the driver — No Answer, Switched Off, Busy, Wrong Number and Couldn\'t reach him all count; an answered call starts it again from 0. Most first.', notReachedList,
+         function(r){ return row(r, num(r.nr), 'calls not reached in a row', r.ls, subOf(r)); }]);
+    // the summary is a row of tabs (22 Nov): one list at a time, or all of them
+    const ids=lists.map(function(l){ return l[0]; });
+    const tab = ids.indexOf(window.CL_TAB)>-1 ? window.CL_TAB : '';
+    const shown = tab ? lists.filter(function(l){ return l[0]===tab; }) : lists;
+    const plan=[]; shown.forEach(function(l){ l[4].forEach(function(r){ if(plan.indexOf(r.phone)<0) plan.push(r.phone); }); });
     const done=plan.filter(calledToday).length, pct=plan.length ? Math.round(done/plan.length*100) : 0;
     b.innerHTML =
       '<div class="panel"><div class="pfhead"><h4 style="margin:0">'+esc(k.agent)+' — who to call</h4>'+kpiPicker(k,'drawCallLists')+'</div>'+
@@ -3520,20 +3543,22 @@ function drawCallLists(){
           '<div class="cl-tools"><input type="search" placeholder="Find a name or number" value="'+esc(window.CL_Q||'')+'" '+
             'oninput="window.CL_Q=this.value;clearTimeout(window.CL_T);window.CL_T=setTimeout(function(){drawCallLists();var i=document.querySelector(\'.cl-tools input\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250)">'+
             '<span class="cl-tog'+(hide?' on':'')+'" onclick="window.CL_HIDE='+(hide?'false':'true')+';drawCallLists()">'+(hide?'✓ ':'')+'Hide called today</span></div></div>'+
-        '<div class="cl-sum">'+lists.map(function(l){
-          return '<div class="cl-chip" style="--c:'+l[1]+'" onclick="jumpTo(\''+l[0]+'\')"><b>'+num(l[6]!==undefined?l[6]:l[4].length)+'</b><span>'+l[2]+'</span></div>'; }).join('')+
-          (top.length ? '<div class="cl-chip" style="--c:#0891b2" onclick="jumpTo(\'cl-top\')"><b>'+top.length+'</b><span>Drivers carrying the book</span></div>' : '')+
+        '<div class="cl-sum" role="tablist">'+
+          '<div class="cl-chip cl-alltab'+(tab?'':' on')+'" role="tab" data-tab="" style="--c:#475569" onclick="clTab(\'\')"><b>'+num(ids.length)+'</b><span>All lists</span></div>'+
+          lists.map(function(l){
+          return '<div class="cl-chip'+(tab===l[0]?' on':'')+'" role="tab" data-tab="'+l[0]+'" style="--c:'+l[1]+'" onclick="clTab(\''+l[0]+'\')"><b>'+num(l[6]!==undefined?l[6]:l[4].length)+'</b><span>'+l[2]+'</span></div>'; }).join('')+
         '</div></div>'+
-      lists.map(function(l){ return sec(l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7]); }).join('')+
-      (top.length ? sec('cl-top','#0891b2','Drivers carrying the book','Most trips in the last 7 days — worth a thank-you call to keep them.', top,
-         function(r){ return row(r, num(r.lw), (r.lwd||7)>=7?'trips, last 7 days':'trips, last '+r.lwd+' days', '', num(r.total)+' trips in all'); }) : '')+
-      ((k.onboardedList||[]).length ?
+      shown.map(function(l){ return sec(l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7]); }).join('')+
+      (!tab && (k.onboardedList||[]).length ?
         '<div class="cl-sec" style="--c:#64748b"><div class="cl-head"><div><h4>Moved to Onboarding this cycle <em>'+num(k.onboardedList.length)+'</em></h4>'+
           '<p>What counts for KPI 1 — for the record. <span class="lnk" onclick="this.closest(\'.cl-sec\').classList.toggle(\'open\')">Show / hide</span></p></div></div>'+
           '<div class="cl-list cl-fold">'+k.onboardedList.map(function(r){
             return row(r, esc(r.on.slice(5)), 'onboarded', '', (KPI_WHO||!isMgr()?'':'by '+esc(r.by)+' · ')+esc(r.stage)+' · '+r.trips+' trips'); }).join('')+'</div></div>' : '');
   });
 }
+
+/* Call lists: one tab at a time (22 Nov); kept while the CRM is open */
+function clTab(id){ window.CL_TAB=id||''; drawCallLists(); const b=document.getElementById('body'); if(b && b.scrollIntoView) window.scrollTo(0,0); }
 
 /* The agent's own page: the drivers he holds (by stage) and the calls he made this cycle. */
 function drawAgentWork(who, callsOnly){
@@ -5868,6 +5893,7 @@ function saveCall(phone){
     toast(res.warn ? res.warn : 'Call saved');
     patchBook(phone, function(x){
       x.lc = res.lastCallDate || 'called';
+      if(res.call && res.call.call_status) x.ls = res.call.call_status;     // (22 Nov) the No answer list reads it
       if(res.noAnswer!==undefined) x.nr = Number(res.noAnswer)||0;          // (18 Nov) the not-reached count
       if(res.call && res.call.follow_up_date) x.fu = res.call.follow_up_date;
       else if(x.fu && String(x.fu).slice(0,10) <= ymdLocal(today0())) x.fu = '';   // a due follow-up: this call was it
