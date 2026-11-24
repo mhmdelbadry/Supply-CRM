@@ -5561,6 +5561,8 @@ function callEv(c){
     (note?'<div style="margin-top:5px">'+esc(note)+'</div>':'')+'</div>'};
 }
 function stageEv(h){
+  if(h.trigger==='archived') return {when:h.changed_at, rank:2, html:'<div class="ev sys">Removed from the CRM: '+esc(h.from_stage||'Churned')+' with no trips for 45 days'+
+    '<div class="t">'+esc(h.changed_at||'')+', his calls and notes kept until he drives again</div></div>'};
   const how=h.trigger==='auto' ? 'moved by ride data' : h.trigger==='set by owner' ? 'set by hand by '+esc(h.changed_by||'') : 'by '+esc(h.changed_by||'');
   return {when:h.changed_at, rank:2, html:'<div class="ev sys">'+esc(h.from_stage||'—')+' &rarr; <b>'+esc(h.to_stage||'')+'</b>'+
     '<div class="t">'+esc(h.changed_at||'')+', '+how+'</div></div>'};
