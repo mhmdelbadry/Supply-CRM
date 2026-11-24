@@ -4803,6 +4803,7 @@ function paintConfig(){
       '<div class="cf-card"><h4>Driver Productivity</h4>'+cfInput('productivityTrips','trips','by the book\'s working drivers, a cycle')+cfInput('productivityPoints','pts')+'</div>'+
       '<div class="cf-card"><h4>Churned Reactivation</h4>'+cfInput('reactivationTrips','trips','by the book\'s churned drivers, a cycle')+cfInput('reactivationPoints','pts')+'</div>'+
       '<div class="cf-card"><h4>Above a target</h4>'+cfInput('minPoolForBonus','drivers')+
+        '<p class="dim" style="font-size:12px;margin:6px 0 0">From the cycle that starts on 26 Nov, points above a target count only once all four KPIs are at 100%. Until 25 Nov they count as before.</p>'+
         '<div id="cfSum" class="cf-sum"></div></div>'+
       '<div class="cf-card"><h4>The pay table <em>points → incentive</em></h4>'+pay+
         '<button class="btn sm" style="margin-top:4px" onclick="cfPayAdd()">Add a step</button>'+
@@ -5599,6 +5600,8 @@ function callEv(c){
     (note?'<div style="margin-top:5px">'+esc(note)+'</div>':'')+'</div>'};
 }
 function stageEv(h){
+  if(h.trigger==='archived') return {when:h.changed_at, rank:2, html:'<div class="ev sys">Removed from the CRM: '+esc(h.from_stage||'Churned')+' with no trips for 45 days'+
+    '<div class="t">'+esc(h.changed_at||'')+', his calls and notes kept until he drives again</div></div>'};
   const how=h.trigger==='auto' ? 'moved by ride data' : h.trigger==='set by owner' ? 'set by hand by '+esc(h.changed_by||'') : 'by '+esc(h.changed_by||'');
   return {when:h.changed_at, rank:2, html:'<div class="ev sys">'+esc(h.from_stage||'—')+' &rarr; <b>'+esc(h.to_stage||'')+'</b>'+
     '<div class="t">'+esc(h.changed_at||'')+', '+how+'</div></div>'};
